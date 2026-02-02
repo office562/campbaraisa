@@ -218,6 +218,19 @@ function Campers() {
     }
   }
 
+  async function handleDeleteCamper(camperId, camperName) {
+    if (!window.confirm(`Move ${camperName} to trash?`)) return;
+    try {
+      await axios.delete(API_URL + '/api/campers/' + camperId, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      setCampers(campers.filter(c => c.id !== camperId));
+      toast.success('Camper moved to trash');
+    } catch (error) {
+      toast.error('Failed to delete camper');
+    }
+  }
+
   function getParentName(camper) {
     // Parent info is now embedded in camper
     const firstName = camper.father_first_name || '';
