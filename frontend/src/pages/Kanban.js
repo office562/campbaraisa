@@ -171,11 +171,6 @@ const Kanban = () => {
                         <p className="font-medium text-[#2D241E] truncate">
                           {camper.first_name} {camper.last_name}
                         </p>
-                        {camper.hebrew_name && (
-                          <p className="text-sm text-muted-foreground font-hebrew truncate">
-                            {camper.hebrew_name}
-                          </p>
-                        )}
                         <div className="mt-2 space-y-1">
                           {camper.grade && (
                             <p className="text-xs text-muted-foreground">
