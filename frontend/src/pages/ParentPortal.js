@@ -256,9 +256,6 @@ const ParentPortal = () => {
                   <div key={camper.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium">{camper.first_name} {camper.last_name}</p>
-                      {camper.hebrew_name && (
-                        <p className="text-sm text-muted-foreground font-hebrew">{camper.hebrew_name}</p>
-                      )}
                       <p className="text-sm text-muted-foreground">
                         {camper.grade || 'No grade'} • {camper.yeshiva || 'No yeshiva'}
                       </p>
