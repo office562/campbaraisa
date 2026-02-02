@@ -735,14 +735,12 @@ async def update_camper_status(camper_id: str, status: str = Query(...), admin=D
         performed_by=admin.get("id")
     )
     
-    # Trigger automated emails based on status change
-    parent = await db.parents.find_one({"id": camper["parent_id"]}, {"_id": 0})
-    
+    # Trigger automated emails based on status change (parent info now in camper)
     if status == "Accepted" and old_status != "Accepted":
         # Log acceptance email
         comm_doc = {
             "id": str(uuid.uuid4()),
-            "parent_id": camper["parent_id"],
+            "camper_id": camper_id,
             "type": "email",
             "subject": f"Welcome to Camp Baraisa - {camper['first_name']} Accepted!",
             "message": f"""We've spoken to your son's Rabbeim & have heard great things.
@@ -756,6 +754,8 @@ Flight & Billing info will be sent in separate emails.
 Thank you and looking forward!""",
             "direction": "outbound",
             "status": "pending",
+            "recipient_email": camper.get("parent_email"),
+            "recipient_phone": camper.get("father_cell") or camper.get("mother_cell"),
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.communications.insert_one(comm_doc)
@@ -773,16 +773,18 @@ Thank you and looking forward!""",
         # Log paid in full email
         comm_doc = {
             "id": str(uuid.uuid4()),
-            "parent_id": camper["parent_id"],
+            "camper_id": camper_id,
             "type": "email",
             "subject": f"Camp Baraisa - Balance Paid in Full",
-            "message": f"""Thank you! Your balance for {camper['first_name']}'s enrollment has been paid in full.
+            "message": f"""Thank you! Your balance for {camper['first_name']} {camper['last_name']}'s enrollment has been paid in full.
 
 We look forward to seeing {camper['first_name']} this summer!
 
 Camp Baraisa Team""",
             "direction": "outbound",
             "status": "pending",
+            "recipient_email": camper.get("parent_email"),
+            "recipient_phone": camper.get("father_cell") or camper.get("mother_cell"),
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.communications.insert_one(comm_doc)
