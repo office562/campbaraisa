@@ -104,7 +104,7 @@ const ParentPortal = () => {
     setProcessingPayment(true);
     try {
       const response = await axios.post(
-        `${API_URL}/api/portal/${accessToken}/payment?invoice_id=${selectedInvoice.id}&amount=${parseFloat(paymentAmount)}`,
+        `${API_URL}/api/portal/${accessToken}/payment?invoice_id=${selectedInvoice.id}&amount=${parseFloat(paymentAmount)}&include_fee=true`,
         {},
         { headers: { origin: window.location.origin }}
       );
@@ -119,10 +119,31 @@ const ParentPortal = () => {
     }
   };
 
+  // Calculate fee when payment amount changes
+  const calculateFee = async (amount) => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setFeeInfo(null);
+      return;
+    }
+    try {
+      const response = await axios.get(`${API_URL}/api/payment/calculate-fee?amount=${parseFloat(amount)}`);
+      setFeeInfo(response.data);
+    } catch (err) {
+      setFeeInfo(null);
+    }
+  };
+
   const openPaymentDialog = (invoice) => {
     setSelectedInvoice(invoice);
-    setPaymentAmount((invoice.amount - invoice.paid_amount).toFixed(2));
+    const balance = (invoice.amount - invoice.paid_amount).toFixed(2);
+    setPaymentAmount(balance);
+    calculateFee(balance);
     setShowPayment(true);
+  };
+
+  const handleAmountChange = (value) => {
+    setPaymentAmount(value);
+    calculateFee(value);
   };
 
   if (loading) {
