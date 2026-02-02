@@ -1,0 +1,157 @@
+{
+  "identity": {
+    "name": "Camp Baraisa Management System",
+    "persona": "E1: The Anti-AI Designer",
+    "vibe": "Utah High Desert Professional - Rugged yet refined, energetic yet organized.",
+    "principles": [
+      "Fusion: Camp Spirit x Enterprise SaaS",
+      "Clarity: Data density without clutter",
+      "Context: Parents get warmth, Admins get speed",
+      "Contrast: High visibility for outdoor use"
+    ]
+  },
+  "typography": {
+    "primary_font": "IBM Plex Sans",
+    "heading_font": "Barlow Condensed",
+    "hebrew_font": "Heebo",
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "bold": 700,
+      "black": 900
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-black tracking-tight uppercase",
+      "h2": "text-3xl md:text-4xl font-bold tracking-tight",
+      "h3": "text-2xl font-bold",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm font-medium tracking-wide uppercase text-muted-foreground"
+    },
+    "imports": [
+      "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=Heebo:wght@400;700&display=swap"
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#E85D04",
+        "foreground": "#FFFFFF",
+        "hover": "#D65200",
+        "light": "#FFF0E6"
+      },
+      "secondary": {
+        "DEFAULT": "#2D241E",
+        "foreground": "#FFFFFF",
+        "hover": "#1F1915"
+      },
+      "background": {
+        "DEFAULT": "#F8F5F2",
+        "paper": "#FFFFFF",
+        "dark": "#1A1A1A"
+      },
+      "accent": {
+        "DEFAULT": "#F4A261",
+        "foreground": "#1A1A1A"
+      },
+      "muted": {
+        "DEFAULT": "#E5E5E5",
+        "foreground": "#737373"
+      },
+      "status": {
+        "success": "#2A9D8F",
+        "warning": "#E9C46A",
+        "error": "#E76F51",
+        "info": "#264653"
+      }
+    },
+    "gradients": {
+      "brand": "bg-gradient-to-br from-[#E85D04] to-[#F4A261]",
+      "dark_overlay": "bg-gradient-to-t from-black/80 to-transparent"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container_padding": "p-6 md:p-8 lg:p-12",
+      "section_gap": "gap-8",
+      "component_gap": "gap-4"
+    },
+    "radius": {
+      "default": "rounded-lg",
+      "card": "rounded-xl",
+      "button": "rounded-md"
+    },
+    "grids": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "form": "grid grid-cols-1 md:grid-cols-2 gap-6"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#E85D04] hover:bg-[#D65200] text-white font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all active:scale-95",
+      "secondary": "bg-[#2D241E] text-white hover:bg-[#1F1915]",
+      "outline": "border-2 border-[#E85D04] text-[#E85D04] hover:bg-[#E85D04] hover:text-white font-bold uppercase"
+    },
+    "cards": {
+      "base": "bg-white border border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200",
+      "interactive": "cursor-pointer hover:border-[#E85D04]/50 hover:ring-1 hover:ring-[#E85D04]/50"
+    },
+    "inputs": {
+      "base": "bg-white border-input focus:border-[#E85D04] focus:ring-[#E85D04]"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "card": "shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+      "float": "shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+    },
+    "textures": {
+      "noise": "bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"
+    },
+    "animations": {
+      "hover_lift": "hover:-translate-y-1 transition-transform duration-200 ease-out"
+    }
+  },
+  "image_urls": {
+    "hero": {
+      "url": "https://images.unsplash.com/photo-1558571212-eae6771b7baf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MTJ8MHwxfHNlYXJjaHwxfHx1dGFoJTIwcmVkJTIwcm9jayUyMGxhbmRzY2FwZSUyMHN1bnNldHxlbnwwfHx8fDE3NzAwMDQ2ODV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Utah Red Rock Sunset",
+      "category": "Login/Landing Background"
+    },
+    "camp_life": [
+      {
+        "url": "https://images.unsplash.com/photo-1613487700156-bbde37f69132?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTJ8MHwxfHNlYXJjaHwxfHxzdW1tZXIlMjBjYW1wJTIwdGVudHMlMjBmb3Jlc3R8ZW58MHx8fHwxNzcwMDA0NjkxfDA&ixlib=rb-4.1.0&q=85",
+        "alt": "Camp Tents",
+        "category": "Parent Portal Header"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1505748641491-f7ee2fd6fb4d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwzfHxraWRzJTIwcGxheWluZyUyMHNvY2NlciUyMHN1bW1lciUyMGNhbXB8ZW58MHx8fHwxNzcwMDA0Njk1fDA&ixlib=rb-4.1.0&q=85",
+        "alt": "Kids Playing Soccer",
+        "category": "Activities Section"
+      }
+    ],
+    "logos": {
+      "orange_on_black": "https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/7loo2ayl_IMG_0091.PNG",
+      "white_on_black": "https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/e2cf1yq8_IMG_4388.PNG",
+      "white_on_orange": "https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/tfcugt99_IMG_5826.jpg",
+      "arch_logo": "https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/of4shzam_IMG_3441%202.jpg"
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. SETUP: Install 'lucide-react', 'recharts', 'date-fns', 'react-day-picker', 'clsx', 'tailwind-merge' immediately.",
+    "2. FONTS: Add the Google Fonts import to index.css. Apply 'font-sans' (IBM Plex Sans) to body and 'font-heading' (Barlow Condensed) to h1-h3.",
+    "3. THEME: Use the 'background' color (#F8F5F2) for the main app background to avoid clinical white sterility.",
+    "4. HEBREW: Ensure all text inputs and displays support RTL if Hebrew characters are detected, or provide a global RTL toggle in settings.",
+    "5. PARENT PORTAL: This must be distinct from Admin. Use the 'hero' image as a full-screen background for the 'No-Login' entry page.",
+    "6. ADMIN DASHBOARD: Use the 'Bento' grid layout. High density, low noise. Use the 'secondary' color (#2D241E) for the sidebar.",
+    "7. KANBAN: Use horizontal scrolling. Columns should have subtle backgrounds (muted/10). Cards must be draggable (use dnd-kit or similar if possible, or just styled static for MVP).",
+    "8. FORMS: Use Shadcn form components but style the borders with 'border-input' and 'focus:border-primary'.",
+    "9. TESTING: Add 'data-testid' to every interactive element (buttons, inputs, cards). Format: 'section-element-action' (e.g., 'login-submit-btn')."
+  ],
+  "universal_guidelines": [
+    "Avoid 'AI Slop': No generic gradients, no centered text blocks without purpose.",
+    "Micro-interactions: Buttons should scale down slightly on click (active:scale-95).",
+    "Spacing: Use 'gap-6' or 'gap-8' for layouts. Don't cram content.",
+    "Accessibility: Ensure text on Orange (#E85D04) is White or very dark. Do not put light gray text on orange."
+  ]
+}
