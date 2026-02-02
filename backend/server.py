@@ -1049,7 +1049,7 @@ async def create_payment(data: PaymentCreate, admin=Depends(get_current_admin)):
     }
     await db.payments.insert_one(payment_doc)
     
-    # Update invoice and parent if payment is completed (non-stripe)
+    # Update invoice and camper if payment is completed (non-stripe)
     if data.method != "stripe":
         new_paid = invoice["paid_amount"] + data.amount
         new_status = "paid" if new_paid >= invoice["amount"] else "partial"
@@ -1059,10 +1059,12 @@ async def create_payment(data: PaymentCreate, admin=Depends(get_current_admin)):
             {"$set": {"paid_amount": new_paid, "status": new_status}}
         )
         
-        await db.parents.update_one(
-            {"id": invoice["parent_id"]},
-            {"$inc": {"total_paid": data.amount}}
-        )
+        # Update camper's total_paid (parent info now embedded in camper)
+        if invoice.get("camper_id"):
+            await db.campers.update_one(
+                {"id": invoice["camper_id"]},
+                {"$inc": {"total_paid": data.amount}}
+            )
     
     payment_doc.pop("_id", None)
     payment_doc["created_at"] = datetime.fromisoformat(payment_doc["created_at"])
