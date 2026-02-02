@@ -143,7 +143,14 @@ const AdminLayout = () => {
         {/* Top Bar with Search */}
         <div className="sticky top-0 z-40 bg-[#F8F5F2]/95 backdrop-blur-sm border-b border-gray-200 px-6 py-4 hidden lg:block">
           <div className="flex items-center justify-between">
-            <GlobalSearch />
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search campers, parents..."
+                className="pl-10 h-10 bg-white/90 border-gray-200 focus:bg-white transition-colors"
+              />
+            </div>
             <div className="text-sm text-muted-foreground">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
@@ -152,7 +159,14 @@ const AdminLayout = () => {
         
         {/* Mobile Search */}
         <div className="lg:hidden px-4 py-3 bg-[#F8F5F2] border-b border-gray-200 mt-16">
-          <GlobalSearch />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search..."
+              className="pl-10 h-10"
+            />
+          </div>
         </div>
 
         <div className="p-6 md:p-8 lg:p-10">
