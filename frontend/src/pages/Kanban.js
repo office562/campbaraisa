@@ -281,22 +281,36 @@ function Kanban() {
       setPendingMove({ camper, fromStatus, toStatus });
       setLoadingEmail(true);
       
-      // Fetch email template preview
+      // Fetch email template preview from the new endpoint
       try {
-        const response = await axios.post(
-          `${API_URL}/api/templates/preview?camper_id=${camper.id}`,
-          {},
+        const response = await axios.get(
+          `${API_URL}/api/campers/${camper.id}/email-preview?new_status=${encodeURIComponent(toStatus)}`,
           { headers: { Authorization: `Bearer ${token}` }}
         );
-        setEmailContent({
-          subject: response.data.subject || `Regarding ${camper.first_name} - ${toStatus}`,
-          body: response.data.body || `Dear Parent,\n\n${camper.first_name} has been moved to ${toStatus}.`
-        });
+        
+        if (response.data.has_template) {
+          setEmailContent({
+            subject: response.data.subject,
+            body: response.data.body,
+            recipient: response.data.recipient_email,
+            templateName: response.data.template_name,
+            templateType: response.data.template_type
+          });
+        } else {
+          // No template configured - show message
+          setEmailContent({
+            subject: '',
+            body: '',
+            noTemplate: true,
+            message: `No email template configured for "${toStatus}" status. You can create one in Settings > Templates.`
+          });
+        }
       } catch (error) {
-        // Use default content
         setEmailContent({
-          subject: `Camp Baraisa - ${camper.first_name} ${toStatus}`,
-          body: `Dear Parent,\n\nWe wanted to let you know that ${camper.first_name}'s status has been updated to "${toStatus}".\n\nBest regards,\nCamp Baraisa`
+          subject: '',
+          body: '',
+          noTemplate: true,
+          message: 'Could not load email template. You can configure templates in Settings.'
         });
       }
       
@@ -307,11 +321,11 @@ function Kanban() {
     }
     
     // No email trigger - proceed directly
-    await executeMove(camper, fromStatus, toStatus);
+    await executeMove(camper, fromStatus, toStatus, false);
     setDraggedCamper(null);
   };
 
-  const executeMove = async (camper, fromStatus, toStatus) => {
+  const executeMove = async (camper, fromStatus, toStatus, skipEmail = false) => {
     // Optimistic update
     const newBoard = { ...board };
     Object.keys(newBoard).forEach(key => {
@@ -326,7 +340,7 @@ function Kanban() {
 
     try {
       await axios.put(
-        `${API_URL}/api/campers/${camper.id}/status?status=${encodeURIComponent(toStatus)}`,
+        `${API_URL}/api/campers/${camper.id}/status?status=${encodeURIComponent(toStatus)}&skip_email=${skipEmail}`,
         {},
         { headers: { Authorization: 'Bearer ' + token }}
       );
@@ -342,11 +356,12 @@ function Kanban() {
     
     const { camper, fromStatus, toStatus } = pendingMove;
     
-    // Execute the move
-    await executeMove(camper, fromStatus, toStatus);
+    // Execute the move (email will be sent by backend using template)
+    await executeMove(camper, fromStatus, toStatus, false);
     
-    // Queue the email (in a real implementation, this would send the email)
-    toast.success(`Email queued for ${camper.parent_email || 'parent'}`);
+    if (!emailContent.noTemplate) {
+      toast.success(`Email queued for ${emailContent.recipient || 'parent'}`);
+    }
     
     // Reset state
     setShowEmailDialog(false);
@@ -358,7 +373,7 @@ function Kanban() {
     if (!pendingMove) return;
     
     const { camper, fromStatus, toStatus } = pendingMove;
-    await executeMove(camper, fromStatus, toStatus);
+    await executeMove(camper, fromStatus, toStatus, true);
     
     setShowEmailDialog(false);
     setPendingMove(null);
