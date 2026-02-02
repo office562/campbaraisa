@@ -1847,34 +1847,22 @@ async def get_parent_portal(access_token: str):
     
     # Fallback to old parent model for backwards compatibility
     parent = await db.parents.find_one({"access_token": access_token}, {"_id": 0})
-    if not parent:
+    if not camper:
         raise HTTPException(status_code=404, detail="Invalid access link")
-    
-    # Get campers (old model)
-    campers = await db.campers.find({"parent_id": parent["id"]}, {"_id": 0}).to_list(100)
-    
-    # Get invoices
-    invoices = await db.invoices.find({"parent_id": parent["id"]}, {"_id": 0}).to_list(100)
-    
-    # Get payments
-    payments = await db.payments.find(
-        {"invoice_id": {"$in": [inv["id"] for inv in invoices]}},
-        {"_id": 0}
-    ).to_list(100)
     
     return {
         "parent": {
-            "id": parent["id"],
-            "first_name": parent.get("father_first_name") or parent.get("first_name"),
-            "last_name": parent.get("father_last_name") or parent.get("last_name"),
-            "email": parent["email"],
-            "father_first_name": parent.get("father_first_name"),
-            "father_cell": parent.get("father_cell"),
-            "phone": parent.get("phone") or parent.get("father_cell"),
-            "total_balance": parent.get("total_balance", 0),
-            "total_paid": parent.get("total_paid", 0)
+            "id": camper["id"],
+            "first_name": camper.get("father_first_name") or camper.get("first_name"),
+            "last_name": camper.get("father_last_name") or camper.get("last_name"),
+            "email": camper.get("parent_email"),
+            "father_first_name": camper.get("father_first_name"),
+            "father_cell": camper.get("father_cell"),
+            "phone": camper.get("father_cell") or camper.get("mother_cell"),
+            "total_balance": camper.get("total_balance", 0),
+            "total_paid": camper.get("total_paid", 0)
         },
-        "campers": campers,
+        "campers": [camper],
         "invoices": invoices,
         "payments": payments
     }
@@ -1887,17 +1875,13 @@ async def portal_create_payment(
     amount: float,
     include_fee: bool = True  # 3.5% credit card fee
 ):
-    # Try camper portal_token first
+    # Find camper by portal_token
     camper = await db.campers.find_one({"portal_token": access_token}, {"_id": 0})
     
-    if camper:
-        invoice = await db.invoices.find_one({"id": invoice_id, "camper_id": camper["id"]}, {"_id": 0})
-    else:
-        # Fallback to parent
-        parent = await db.parents.find_one({"access_token": access_token}, {"_id": 0})
-        if not parent:
-            raise HTTPException(status_code=404, detail="Invalid access link")
-        invoice = await db.invoices.find_one({"id": invoice_id, "parent_id": parent["id"]}, {"_id": 0})
+    if not camper:
+        raise HTTPException(status_code=404, detail="Invalid access link")
+    
+    invoice = await db.invoices.find_one({"id": invoice_id, "camper_id": camper["id"]}, {"_id": 0})
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
