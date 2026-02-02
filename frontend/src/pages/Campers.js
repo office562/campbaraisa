@@ -699,9 +699,27 @@ function Campers() {
               {filteredCampers.length > 0 ? (
                 filteredCampers.map(function(camper) {
                   return (
-                    <TableRow key={camper.id} className="cursor-pointer hover:bg-gray-50">
+                    <TableRow 
+                      key={camper.id} 
+                      className="cursor-pointer hover:bg-[#E85D04]/5 transition-colors"
+                      onClick={function() { navigate('/campers/' + camper.id); }}
+                      data-testid={'camper-row-' + camper.id}
+                    >
                       <TableCell className="font-medium">
-                        {camper.first_name} {camper.last_name}
+                        <div className="flex items-center gap-3">
+                          {camper.photo_url ? (
+                            <img src={camper.photo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-[#E85D04]/10 flex items-center justify-center">
+                              <span className="text-[#E85D04] font-bold text-sm">
+                                {camper.first_name.charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                          <span className="hover:text-[#E85D04] transition-colors">
+                            {camper.first_name} {camper.last_name}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>{camper.grade || '-'}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{camper.yeshiva || '-'}</TableCell>
@@ -712,14 +730,7 @@ function Campers() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={function() { navigate('/campers/' + camper.id); }}
-                          data-testid={'view-camper-' + camper.id}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <span className="text-xs text-muted-foreground">Click to view →</span>
                       </TableCell>
                     </TableRow>
                   );
