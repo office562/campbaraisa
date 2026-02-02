@@ -8,22 +8,9 @@ import {
   DollarSign, 
   TrendingUp, 
   Mail, 
-  Calendar,
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -59,15 +46,27 @@ const Dashboard = () => {
     );
   }
 
-  const kanbanData = stats?.campers_by_status 
-    ? Object.entries(stats.campers_by_status)
-        .filter(([_, count]) => count > 0)
-        .map(([status, count]) => ({ name: status, value: count }))
-    : [];
+  const getKanbanData = () => {
+    if (!stats || !stats.campers_by_status) return [];
+    const result = [];
+    const entries = Object.keys(stats.campers_by_status);
+    for (let i = 0; i < entries.length; i++) {
+      const status = entries[i];
+      const count = stats.campers_by_status[status];
+      if (count > 0) {
+        result.push({ name: status, value: count });
+      }
+    }
+    return result;
+  };
 
-  const collectionRate = stats?.total_invoiced > 0 
+  const kanbanData = getKanbanData();
+
+  const collectionRate = stats && stats.total_invoiced > 0 
     ? ((stats.total_collected / stats.total_invoiced) * 100).toFixed(1)
     : 0;
+
+  const statusEntries = stats && stats.campers_by_status ? Object.keys(stats.campers_by_status) : [];
 
   return (
     <div data-testid="dashboard-page">
@@ -162,34 +161,37 @@ const Dashboard = () => {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Camper Status Chart */}
+        {/* Camper Status Summary */}
         <Card className="card-camp">
           <CardHeader>
             <CardTitle className="font-heading text-xl">Enrollment Pipeline</CardTitle>
           </CardHeader>
           <CardContent>
             {kanbanData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={kanbanData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {kanbanData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="space-y-3">
+                {kanbanData.map((item, idx) => (
+                  <div key={item.name} className="flex items-center gap-3">
+                    <div 
+                      className="w-4 h-4 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                    />
+                    <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
+                      <div 
+                        className="h-full rounded-full flex items-center justify-end px-2 text-xs text-white font-medium"
+                        style={{ 
+                          width: `${Math.max((item.value / (stats?.total_campers || 1)) * 100, 20)}%`,
+                          backgroundColor: COLORS[idx % COLORS.length]
+                        }}
+                      >
+                        {item.value}
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium w-32 truncate">{item.name}</span>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground">
                 No camper data yet
               </div>
             )}
@@ -203,7 +205,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats?.campers_by_status && Object.entries(stats.campers_by_status).map(([status, count], idx) => (
+              {statusEntries.length > 0 ? statusEntries.map((status, idx) => (
                 <div key={status} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div 
@@ -213,11 +215,10 @@ const Dashboard = () => {
                     <span className="text-sm font-medium">{status}</span>
                   </div>
                   <Badge variant="secondary" className="font-bold">
-                    {count}
+                    {stats.campers_by_status[status]}
                   </Badge>
                 </div>
-              ))}
-              {!stats?.campers_by_status && (
+              )) : (
                 <p className="text-center text-muted-foreground py-8">No status data available</p>
               )}
             </div>
@@ -236,7 +237,7 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {stats?.recent_campers?.length > 0 ? (
+            {stats?.recent_campers && stats.recent_campers.length > 0 ? (
               <div className="space-y-3">
                 {stats.recent_campers.map((camper) => (
                   <div key={camper.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
