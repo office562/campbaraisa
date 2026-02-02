@@ -59,7 +59,7 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const TRIGGER_OPTIONS = [
-  { value: '', label: 'No automatic trigger', auto: false },
+  { value: 'none', label: 'No automatic trigger', auto: false },
   { value: 'status_accepted', label: 'When camper is Accepted', auto: true },
   { value: 'status_paid_in_full', label: 'When paid in full', auto: true },
   { value: 'payment_reminder', label: 'Payment reminder (auto)', auto: true },
