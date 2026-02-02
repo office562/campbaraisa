@@ -5,19 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -27,173 +27,247 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { toast } from 'sonner';
-import { 
-  Settings as SettingsIcon, 
-  Mail, 
-  Phone,
-  Building,
-  Link2,
+import {
+  Settings as SettingsIcon,
+  Key,
+  Mail,
+  MessageSquare,
+  Zap,
   Save,
   Plus,
   Edit,
-  UserCheck,
-  AlertCircle,
-  Eye,
   Trash2,
-  MessageSquare,
-  Code,
-  ChevronDown,
+  RefreshCw,
   User,
-  DollarSign,
-  Home,
-  Zap,
-  Key,
-  FileText
+  Users,
+  Shield,
+  Eye,
+  EyeOff,
+  Check,
+  X,
+  AlertTriangle,
+  Undo2,
+  Lock
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const TRIGGER_OPTIONS = [
-  { value: 'none', label: 'No automatic trigger', auto: false },
-  { value: 'status_accepted', label: 'When camper is Accepted', auto: true },
-  { value: 'status_paid_in_full', label: 'When paid in full', auto: true },
-  { value: 'payment_reminder', label: 'Payment reminder (auto)', auto: true },
-  { value: 'invoice_sent', label: 'When invoice is sent', auto: true },
-  { value: 'manual', label: 'Manual send only', auto: false },
+const TEMPLATE_TRIGGERS = [
+  { value: 'none', label: 'None (Manual Only)' },
+  { value: 'status_accepted', label: '⚡ Status: Accepted' },
+  { value: 'status_paid_in_full', label: '⚡ Status: Paid in Full' },
+  { value: 'invoice_sent', label: '⚡ Invoice Sent' },
+  { value: 'payment_received', label: '⚡ Payment Received' },
+  { value: 'reminder_15_before', label: '⚡ Reminder: 15 days before due' },
+  { value: 'reminder_due_date', label: '⚡ Reminder: On due date' },
+  { value: 'reminder_3_after', label: '⚡ Reminder: 3 days after due' },
+  { value: 'reminder_7_after', label: '⚡ Reminder: 7 days after due' },
+  { value: 'reminder_15_after', label: '⚡ Reminder: 15 days after due' },
 ];
 
-const CATEGORY_ICONS = {
-  parent: User,
-  camper: User,
-  billing: DollarSign,
-  camp: Home,
-};
+const MERGE_FIELDS = [
+  { field: '{{camper_first_name}}', description: 'Camper first name' },
+  { field: '{{camper_last_name}}', description: 'Camper last name' },
+  { field: '{{camper_full_name}}', description: 'Camper full name' },
+  { field: '{{parent_father_first_name}}', description: 'Father first name' },
+  { field: '{{parent_father_last_name}}', description: 'Father last name' },
+  { field: '{{parent_email}}', description: 'Parent email' },
+  { field: '{{payment_link}}', description: 'Portal payment link' },
+  { field: '{{amount_due}}', description: 'Amount due' },
+  { field: '{{total_balance}}', description: 'Total balance' },
+];
 
-const Settings = () => {
-  const { token, admin } = useAuth();
-  const [settings, setSettings] = useState(null);
-  const [templates, setTemplates] = useState([]);
-  const [pendingAdmins, setPendingAdmins] = useState([]);
-  const [mergeFields, setMergeFields] = useState({});
-  const [campers, setCampers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+function Settings() {
+  const { token, admin, updateAdmin } = useAuth();
+  const [activeTab, setActiveTab] = useState('account');
   
-  const [showAddTemplate, setShowAddTemplate] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState(null);
-  const [newTemplate, setNewTemplate] = useState({
-    name: '', subject: '', body: '', trigger: 'none', template_type: 'email'
+  // Account settings
+  const [accountForm, setAccountForm] = useState({
+    name: '',
+    email: '',
+    phone: ''
   });
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
-  const [previewCamperId, setPreviewCamperId] = useState('');
-  const [activeField, setActiveField] = useState('body');
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   
-  const subjectRef = useRef(null);
-  const bodyRef = useRef(null);
+  // Admin management
+  const [admins, setAdmins] = useState([]);
+  const [showAddAdmin, setShowAddAdmin] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '', phone: '', role: 'admin' });
+  const [editingAdmin, setEditingAdmin] = useState(null);
+  
+  // Trash
+  const [trash, setTrash] = useState([]);
+  const [loadingTrash, setLoadingTrash] = useState(false);
+  
+  // Templates
+  const [templates, setTemplates] = useState([]);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    template_type: 'email',
+    trigger: 'none',
+    subject: '',
+    body: ''
+  });
+  
+  // API Keys
+  const [apiKeys, setApiKeys] = useState({
+    twilio_account_sid: '',
+    twilio_auth_token: '',
+    twilio_phone_number: '',
+    gmail_client_id: '',
+    gmail_client_secret: ''
+  });
+  const [showKeys, setShowKeys] = useState({});
+
+  useEffect(() => {
+    if (admin) {
+      setAccountForm({
+        name: admin.name || '',
+        email: admin.email || '',
+        phone: admin.phone || ''
+      });
+    }
+    fetchData();
+  }, [admin, token]);
 
   const fetchData = async () => {
     try {
-      const [settingsRes, templatesRes, pendingRes, fieldsRes, campersRes] = await Promise.all([
-        axios.get(`${API_URL}/api/settings`, { headers: { Authorization: `Bearer ${token}` }}),
+      const [templatesRes, adminsRes, settingsRes] = await Promise.all([
         axios.get(`${API_URL}/api/email-templates`, { headers: { Authorization: `Bearer ${token}` }}),
-        axios.get(`${API_URL}/api/auth/pending`, { headers: { Authorization: `Bearer ${token}` }}),
-        axios.get(`${API_URL}/api/template-merge-fields`, { headers: { Authorization: `Bearer ${token}` }}),
-        axios.get(`${API_URL}/api/campers`, { headers: { Authorization: `Bearer ${token}` }})
+        axios.get(`${API_URL}/api/admins`, { headers: { Authorization: `Bearer ${token}` }}),
+        axios.get(`${API_URL}/api/settings`, { headers: { Authorization: `Bearer ${token}` }}).catch(() => ({ data: {} }))
       ]);
-      setSettings(settingsRes.data);
-      setTemplates(templatesRes.data);
-      setPendingAdmins(pendingRes.data);
-      setMergeFields(fieldsRes.data);
-      setCampers(campersRes.data);
+      setTemplates(templatesRes.data || []);
+      setAdmins(adminsRes.data || []);
+      if (settingsRes.data) {
+        setApiKeys({
+          twilio_account_sid: settingsRes.data.twilio_account_sid || '',
+          twilio_auth_token: settingsRes.data.twilio_auth_token || '',
+          twilio_phone_number: settingsRes.data.twilio_phone_number || '',
+          gmail_client_id: settingsRes.data.gmail_client_id || '',
+          gmail_client_secret: settingsRes.data.gmail_client_secret || ''
+        });
+      }
     } catch (error) {
-      toast.error('Failed to fetch settings');
-    } finally {
-      setLoading(false);
+      console.error('Error fetching settings data');
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [token]);
-
-  const handleSaveSettings = async () => {
-    setSaving(true);
+  const fetchTrash = async () => {
+    setLoadingTrash(true);
     try {
-      await axios.put(`${API_URL}/api/settings`, settings, {
+      const res = await axios.get(`${API_URL}/api/campers/trash/list`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Settings saved successfully');
+      setTrash(res.data || []);
     } catch (error) {
-      toast.error('Failed to save settings');
+      toast.error('Failed to load trash');
     } finally {
-      setSaving(false);
+      setLoadingTrash(false);
     }
   };
 
-  const handleSaveTemplate = async (e) => {
-    e.preventDefault();
+  // Account handlers
+  const handleSaveAccount = async () => {
+    setSavingAccount(true);
     try {
-      if (editingTemplate) {
-        await axios.put(`${API_URL}/api/email-templates/${editingTemplate.id}`, newTemplate, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast.success('Template updated');
-      } else {
-        await axios.post(`${API_URL}/api/email-templates`, newTemplate, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        toast.success('Template created');
-      }
-      setShowAddTemplate(false);
-      setEditingTemplate(null);
-      setNewTemplate({ name: '', subject: '', body: '', trigger: 'none', template_type: 'email' });
-      fetchData();
-    } catch (error) {
-      toast.error('Failed to save template');
-    }
-  };
-
-  const handleDeleteTemplate = async (templateId) => {
-    if (!window.confirm('Are you sure you want to delete this template?')) return;
-    try {
-      await axios.delete(`${API_URL}/api/email-templates/${templateId}`, {
+      await axios.put(`${API_URL}/api/account`, accountForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Template deleted');
-      fetchData();
+      if (updateAdmin) {
+        updateAdmin({ ...admin, ...accountForm });
+      }
+      toast.success('Account updated');
     } catch (error) {
-      toast.error('Failed to delete template');
+      toast.error(error.response?.data?.detail || 'Failed to update account');
+    } finally {
+      setSavingAccount(false);
     }
   };
 
-  const handlePreviewTemplate = async () => {
+  const handleChangePassword = async () => {
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setSavingPassword(true);
     try {
-      const params = new URLSearchParams();
-      if (editingTemplate?.id) {
-        params.append('template_id', editingTemplate.id);
-      } else {
-        params.append('custom_subject', newTemplate.subject);
-        params.append('custom_body', newTemplate.body);
-      }
-      if (previewCamperId) {
-        params.append('camper_id', previewCamperId);
-      }
-      
-      const response = await axios.post(
-        `${API_URL}/api/templates/preview?${params.toString()}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` }}
-      );
-      setPreviewData(response.data);
-      setShowPreview(true);
+      await axios.put(`${API_URL}/api/account/password`, {
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
+      toast.success('Password changed');
     } catch (error) {
-      toast.error('Failed to preview template');
+      toast.error(error.response?.data?.detail || 'Failed to change password');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  // Admin handlers
+  const handleCreateAdmin = async () => {
+    try {
+      await axios.post(`${API_URL}/api/admins`, newAdmin, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNewAdmin({ name: '', email: '', password: '', phone: '', role: 'admin' });
+      setShowAddAdmin(false);
+      fetchData();
+      toast.success('Admin created');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create admin');
+    }
+  };
+
+  const handleUpdateAdmin = async () => {
+    if (!editingAdmin) return;
+    try {
+      await axios.put(`${API_URL}/api/admins/${editingAdmin.id}`, {
+        name: editingAdmin.name,
+        email: editingAdmin.email,
+        phone: editingAdmin.phone,
+        role: editingAdmin.role,
+        is_approved: editingAdmin.is_approved
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEditingAdmin(null);
+      fetchData();
+      toast.success('Admin updated');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update admin');
+    }
+  };
+
+  const handleDeleteAdmin = async (adminId) => {
+    if (!window.confirm('Are you sure you want to delete this admin?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/admins/${adminId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+      toast.success('Admin deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete admin');
     }
   };
 
@@ -202,754 +276,629 @@ const Settings = () => {
       await axios.post(`${API_URL}/api/auth/approve/${adminId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Admin approved');
       fetchData();
+      toast.success('Admin approved');
     } catch (error) {
       toast.error('Failed to approve admin');
     }
   };
 
-  const openEditTemplate = (template) => {
-    setEditingTemplate(template);
-    setNewTemplate({
-      name: template.name,
-      subject: template.subject,
-      body: template.body,
-      trigger: template.trigger || 'none',
-      template_type: template.template_type || 'email'
-    });
-    setShowAddTemplate(true);
+  const handleDenyAdmin = async (adminId) => {
+    try {
+      await axios.post(`${API_URL}/api/auth/deny/${adminId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+      toast.success('Admin denied');
+    } catch (error) {
+      toast.error('Failed to deny admin');
+    }
   };
 
-  const insertMergeField = (field) => {
-    const targetField = activeField;
-    const currentValue = newTemplate[targetField] || '';
-    
-    // Get cursor position if available
-    const ref = targetField === 'subject' ? subjectRef : bodyRef;
-    const cursorPos = ref.current?.selectionStart || currentValue.length;
-    
-    const newValue = currentValue.slice(0, cursorPos) + field + currentValue.slice(cursorPos);
-    setNewTemplate({ ...newTemplate, [targetField]: newValue });
+  // Trash handlers
+  const handleRestoreCamper = async (camperId) => {
+    try {
+      await axios.post(`${API_URL}/api/campers/trash/${camperId}/restore`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchTrash();
+      toast.success('Camper restored');
+    } catch (error) {
+      toast.error('Failed to restore camper');
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E85D04]"></div>
-      </div>
-    );
-  }
+  const handlePermanentDelete = async (camperId) => {
+    if (!window.confirm('This will permanently delete the camper. This cannot be undone. Continue?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/campers/trash/${camperId}/permanent`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchTrash();
+      toast.success('Camper permanently deleted');
+    } catch (error) {
+      toast.error('Failed to delete camper');
+    }
+  };
+
+  // Template handlers
+  const handleSaveTemplate = async () => {
+    try {
+      if (editingTemplate) {
+        await axios.put(`${API_URL}/api/email-templates/${editingTemplate.id}`, templateForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Template updated');
+      } else {
+        await axios.post(`${API_URL}/api/email-templates`, templateForm, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Template created');
+      }
+      setShowTemplateEditor(false);
+      setEditingTemplate(null);
+      setTemplateForm({ name: '', template_type: 'email', trigger: 'none', subject: '', body: '' });
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to save template');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Delete this template?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/email-templates/${templateId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+      toast.success('Template deleted');
+    } catch (error) {
+      toast.error('Failed to delete template');
+    }
+  };
+
+  const openTemplateEditor = (template = null) => {
+    if (template) {
+      setEditingTemplate(template);
+      setTemplateForm({
+        name: template.name,
+        template_type: template.template_type,
+        trigger: template.trigger || 'none',
+        subject: template.subject || '',
+        body: template.body || ''
+      });
+    } else {
+      setEditingTemplate(null);
+      setTemplateForm({ name: '', template_type: 'email', trigger: 'none', subject: '', body: '' });
+    }
+    setShowTemplateEditor(true);
+  };
+
+  // API Keys handlers
+  const handleSaveApiKeys = async () => {
+    try {
+      await axios.put(`${API_URL}/api/settings`, apiKeys, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('API keys saved');
+    } catch (error) {
+      toast.error('Failed to save API keys');
+    }
+  };
+
+  const pendingAdmins = admins.filter(a => !a.is_approved);
+  const approvedAdmins = admins.filter(a => a.is_approved);
 
   return (
     <div data-testid="settings-page">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-heading text-4xl font-bold text-[#2D241E] tracking-tight">
-            Settings
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure camp settings and integrations
-          </p>
-        </div>
-        <Button
-          onClick={handleSaveSettings}
-          className="btn-camp-primary"
-          disabled={saving}
-          data-testid="save-settings-btn"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Settings'}
-        </Button>
+      <div className="mb-8">
+        <h1 className="font-heading text-4xl font-bold text-[#2D241E] tracking-tight">
+          Settings
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your account, team, and system configuration
+        </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-4 gap-4">
-          <TabsTrigger value="general" data-testid="tab-general">General</TabsTrigger>
-          <TabsTrigger value="integrations" data-testid="tab-integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="emails" data-testid="tab-emails">Templates</TabsTrigger>
-          <TabsTrigger value="admins" data-testid="tab-admins">Admins</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsTrigger value="account">
+            <User className="w-4 h-4 mr-2" />
+            Account
+          </TabsTrigger>
+          <TabsTrigger value="admins">
+            <Users className="w-4 h-4 mr-2" />
+            Admins
+          </TabsTrigger>
+          <TabsTrigger value="templates">
+            <Mail className="w-4 h-4 mr-2" />
+            Templates
+          </TabsTrigger>
+          <TabsTrigger value="integrations">
+            <Key className="w-4 h-4 mr-2" />
+            API Keys
+          </TabsTrigger>
+          <TabsTrigger value="trash" onClick={fetchTrash}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Trash
+          </TabsTrigger>
         </TabsList>
 
-        {/* General Settings */}
-        <TabsContent value="general">
-          <Card className="card-camp">
-            <CardHeader>
-              <CardTitle className="font-heading text-xl flex items-center gap-2">
-                <Building className="w-5 h-5 text-[#E85D04]" />
-                Camp Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Camp Name</Label>
-                <Input
-                  value={settings?.camp_name || ''}
-                  onChange={(e) => setSettings({...settings, camp_name: e.target.value})}
-                  data-testid="setting-camp-name"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Camp Email
-                  </Label>
-                  <Input
-                    type="email"
-                    value={settings?.camp_email || ''}
-                    onChange={(e) => setSettings({...settings, camp_email: e.target.value})}
-                    placeholder="info@campbaraisa.com"
-                    data-testid="setting-camp-email"
-                  />
-                </div>
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    Camp Phone
-                  </Label>
-                  <Input
-                    value={settings?.camp_phone || ''}
-                    onChange={(e) => setSettings({...settings, camp_phone: e.target.value})}
-                    placeholder="(555) 123-4567"
-                    data-testid="setting-camp-phone"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Integrations */}
-        <TabsContent value="integrations">
-          <div className="space-y-6">
+        {/* Account Tab */}
+        <TabsContent value="account">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="card-camp">
               <CardHeader>
-                <CardTitle className="font-heading text-xl flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-[#E85D04]" />
-                  QuickBooks Integration
-                </CardTitle>
-                <CardDescription>Sync financial data with QuickBooks</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Enable QuickBooks Sync</p>
-                    <p className="text-sm text-muted-foreground">Automatically sync invoices and payments</p>
-                  </div>
-                  <Switch
-                    checked={settings?.quickbooks_sync || false}
-                    onCheckedChange={(checked) => setSettings({...settings, quickbooks_sync: checked})}
-                    data-testid="toggle-quickbooks"
-                  />
-                </div>
-                {settings?.quickbooks_sync && (
-                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <p className="text-sm text-yellow-800">
-                      QuickBooks API credentials need to be configured. Contact support for setup assistance.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="card-camp">
-              <CardHeader>
-                <CardTitle className="font-heading text-xl flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-[#E85D04]" />
-                  Gmail Integration
-                </CardTitle>
-                <CardDescription>Send emails via Google Workspace</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Enable Gmail API</p>
-                    <p className="text-sm text-muted-foreground">Send automated emails through Gmail</p>
-                  </div>
-                  <Switch
-                    checked={settings?.gmail_enabled || false}
-                    onCheckedChange={(checked) => setSettings({...settings, gmail_enabled: checked})}
-                    data-testid="toggle-gmail"
-                  />
-                </div>
-                {!settings?.gmail_enabled && (
-                  <p className="text-sm text-muted-foreground mt-4">
-                    Emails are currently queued but not sent. Enable Gmail to send automated communications.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="card-camp">
-              <CardHeader>
-                <CardTitle className="font-heading text-xl flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-[#E85D04]" />
-                  Twilio SMS Integration
-                </CardTitle>
-                <CardDescription>Send SMS notifications to parents</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Enable Twilio SMS</p>
-                    <p className="text-sm text-muted-foreground">Send text message reminders</p>
-                  </div>
-                  <Switch
-                    checked={settings?.twilio_enabled || false}
-                    onCheckedChange={(checked) => setSettings({...settings, twilio_enabled: checked})}
-                    data-testid="toggle-twilio"
-                  />
-                </div>
-                {!settings?.twilio_enabled && (
-                  <p className="text-sm text-muted-foreground mt-4">
-                    SMS is disabled. Configure Twilio credentials to enable text messaging.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* API Keys Section */}
-            <Card className="card-camp">
-              <CardHeader>
-                <CardTitle className="font-heading text-xl flex items-center gap-2">
-                  <Key className="w-5 h-5 text-[#E85D04]" />
-                  API Keys & Credentials
-                </CardTitle>
-                <CardDescription>Enter your integration API keys (stored securely)</CardDescription>
+                <CardTitle className="font-heading text-xl">Profile Information</CardTitle>
+                <CardDescription>Update your account details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Gmail/Google */}
-                <div className="p-4 border rounded-lg">
-                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
-                    <Mail className="w-4 h-4" />
-                    Gmail API Credentials
-                  </Label>
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    value={accountForm.name}
+                    onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
+                    data-testid="account-name"
+                  />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={accountForm.email}
+                    onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                    data-testid="account-email"
+                  />
+                </div>
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    value={accountForm.phone}
+                    onChange={(e) => setAccountForm({ ...accountForm, phone: e.target.value })}
+                    data-testid="account-phone"
+                  />
+                </div>
+                <Button 
+                  onClick={handleSaveAccount} 
+                  className="btn-camp-primary"
+                  disabled={savingAccount}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {savingAccount ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="card-camp">
+              <CardHeader>
+                <CardTitle className="font-heading text-xl">Change Password</CardTitle>
+                <CardDescription>Update your login password</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Current Password</Label>
                   <Input
                     type="password"
-                    placeholder="Gmail API Key or Service Account JSON"
-                    value={settings?.gmail_api_key || ''}
-                    onChange={(e) => setSettings({...settings, gmail_api_key: e.target.value})}
-                    className="mb-2"
+                    value={passwordForm.current_password}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Get your credentials from <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Google Cloud Console</a>
-                  </p>
                 </div>
-
-                {/* Twilio */}
-                <div className="p-4 border rounded-lg">
-                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
-                    <Phone className="w-4 h-4" />
-                    Twilio SMS Credentials
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <Input
-                      type="text"
-                      placeholder="Account SID"
-                      value={settings?.twilio_account_sid || ''}
-                      onChange={(e) => setSettings({...settings, twilio_account_sid: e.target.value})}
-                    />
-                    <Input
-                      type="password"
-                      placeholder="Auth Token"
-                      value={settings?.twilio_auth_token || ''}
-                      onChange={(e) => setSettings({...settings, twilio_auth_token: e.target.value})}
-                    />
-                  </div>
-                  <Input
-                    type="text"
-                    placeholder="Twilio Phone Number (+1234567890)"
-                    value={settings?.twilio_phone_number || ''}
-                    onChange={(e) => setSettings({...settings, twilio_phone_number: e.target.value})}
-                    className="mb-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Get your credentials from <a href="https://console.twilio.com" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Twilio Console</a>
-                  </p>
-                </div>
-
-                {/* Jotform */}
-                <div className="p-4 border rounded-lg">
-                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
-                    <FileText className="w-4 h-4" />
-                    Jotform Integration
-                  </Label>
+                <div>
+                  <Label>New Password</Label>
                   <Input
                     type="password"
-                    placeholder="Jotform API Key"
-                    value={settings?.jotform_api_key || ''}
-                    onChange={(e) => setSettings({...settings, jotform_api_key: e.target.value})}
-                    className="mb-2"
+                    value={passwordForm.new_password}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
                   />
-                  <Input
-                    type="text"
-                    placeholder="Jotform Form ID (for current year application)"
-                    value={settings?.jotform_form_id || ''}
-                    onChange={(e) => setSettings({...settings, jotform_form_id: e.target.value})}
-                    className="mb-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Get your API key from <a href="https://www.jotform.com/myaccount/api" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Jotform API Settings</a>
-                  </p>
                 </div>
-
-                {/* Stripe */}
-                <div className="p-4 border rounded-lg">
-                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
-                    <DollarSign className="w-4 h-4" />
-                    Stripe Payment Keys
-                  </Label>
+                <div>
+                  <Label>Confirm New Password</Label>
                   <Input
                     type="password"
-                    placeholder="Stripe Secret Key (sk_live_... or sk_test_...)"
-                    value={settings?.stripe_secret_key || ''}
-                    onChange={(e) => setSettings({...settings, stripe_secret_key: e.target.value})}
-                    className="mb-2"
+                    value={passwordForm.confirm_password}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
                   />
-                  <Input
-                    type="text"
-                    placeholder="Stripe Publishable Key (pk_live_... or pk_test_...)"
-                    value={settings?.stripe_publishable_key || ''}
-                    onChange={(e) => setSettings({...settings, stripe_publishable_key: e.target.value})}
-                    className="mb-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Get your keys from <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Stripe Dashboard</a>
-                  </p>
                 </div>
+                <Button 
+                  onClick={handleChangePassword}
+                  variant="outline"
+                  disabled={savingPassword}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  {savingPassword ? 'Changing...' : 'Change Password'}
+                </Button>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Email/SMS Templates */}
-        <TabsContent value="emails">
+        {/* Admins Tab */}
+        <TabsContent value="admins">
+          <div className="space-y-6">
+            {/* Pending Approvals */}
+            {pendingAdmins.length > 0 && (
+              <Card className="card-camp border-orange-200 bg-orange-50/50">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    Pending Approvals ({pendingAdmins.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pendingAdmins.map(a => (
+                      <div key={a.id} className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                        <div>
+                          <p className="font-medium">{a.name}</p>
+                          <p className="text-sm text-muted-foreground">{a.email}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => handleApproveAdmin(a.id)}>
+                            <Check className="w-4 h-4 mr-1" /> Approve
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => handleDenyAdmin(a.id)}>
+                            <X className="w-4 h-4 mr-1" /> Deny
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Admin List */}
+            <Card className="card-camp">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="font-heading text-xl">Admin Users</CardTitle>
+                  <CardDescription>Manage admin accounts</CardDescription>
+                </div>
+                <Dialog open={showAddAdmin} onOpenChange={setShowAddAdmin}>
+                  <DialogTrigger asChild>
+                    <Button className="btn-camp-primary">
+                      <Plus className="w-4 h-4 mr-2" /> Add Admin
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Admin</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Name *</Label>
+                        <Input value={newAdmin.name} onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Email *</Label>
+                        <Input type="email" value={newAdmin.email} onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Password *</Label>
+                        <Input type="password" value={newAdmin.password} onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Phone</Label>
+                        <Input value={newAdmin.phone} onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })} />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddAdmin(false)}>Cancel</Button>
+                      <Button className="btn-camp-primary" onClick={handleCreateAdmin}>Create Admin</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvedAdmins.map(a => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-medium">{a.name}</TableCell>
+                        <TableCell>{a.email}</TableCell>
+                        <TableCell>{a.phone || '-'}</TableCell>
+                        <TableCell>
+                          <Badge className="bg-green-100 text-green-700">Active</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {a.id !== admin?.id && (
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => setEditingAdmin(a)}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => handleDeleteAdmin(a.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                          {a.id === admin?.id && (
+                            <Badge variant="outline">You</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Edit Admin Dialog */}
+            <Dialog open={!!editingAdmin} onOpenChange={() => setEditingAdmin(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Admin</DialogTitle>
+                </DialogHeader>
+                {editingAdmin && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input value={editingAdmin.name} onChange={(e) => setEditingAdmin({ ...editingAdmin, name: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>Email</Label>
+                      <Input type="email" value={editingAdmin.email} onChange={(e) => setEditingAdmin({ ...editingAdmin, email: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input value={editingAdmin.phone || ''} onChange={(e) => setEditingAdmin({ ...editingAdmin, phone: e.target.value })} />
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditingAdmin(null)}>Cancel</Button>
+                  <Button className="btn-camp-primary" onClick={handleUpdateAdmin}>Save Changes</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </TabsContent>
+
+        {/* Templates Tab */}
+        <TabsContent value="templates">
           <Card className="card-camp">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="font-heading text-xl">Email & SMS Templates</CardTitle>
-                <CardDescription>Create templates with dynamic merge fields for personalized communications</CardDescription>
+                <CardTitle className="font-heading text-xl">Email/SMS Templates</CardTitle>
+                <CardDescription>
+                  Create templates with ⚡ to auto-send on status changes
+                </CardDescription>
               </div>
-              <Dialog open={showAddTemplate} onOpenChange={(open) => {
-                setShowAddTemplate(open);
-                if (!open) {
-                  setEditingTemplate(null);
-                  setNewTemplate({ name: '', subject: '', body: '', trigger: 'none', template_type: 'email' });
-                  setPreviewData(null);
-                }
-              }}>
-                <DialogTrigger asChild>
-                  <Button className="btn-camp-primary" data-testid="add-template-btn">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Template
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                  <DialogHeader>
-                    <DialogTitle className="font-heading text-2xl">
-                      {editingTemplate ? 'Edit Template' : 'Create Template'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      Use merge fields to personalize your messages. Click on a field to insert it.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="flex-1 overflow-y-auto">
-                    <form onSubmit={handleSaveTemplate} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>Template Name</Label>
-                          <Input
-                            value={newTemplate.name}
-                            onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
-                            placeholder="e.g., Acceptance Email"
-                            required
-                            data-testid="template-name"
-                          />
-                        </div>
-                        <div>
-                          <Label>Type</Label>
-                          <Select
-                            value={newTemplate.template_type}
-                            onValueChange={(value) => setNewTemplate({...newTemplate, template_type: value})}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="email">
-                                <div className="flex items-center gap-2">
-                                  <Mail className="w-4 h-4" />
-                                  Email
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="sms">
-                                <div className="flex items-center gap-2">
-                                  <MessageSquare className="w-4 h-4" />
-                                  SMS
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label>Automatic Trigger</Label>
-                        <Select
-                          value={newTemplate.trigger}
-                          onValueChange={(value) => setNewTemplate({...newTemplate, trigger: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select when to send automatically" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TRIGGER_OPTIONS.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Merge Fields Toolbar */}
-                      <div className="border rounded-lg p-3 bg-gray-50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Code className="w-4 h-4 text-[#E85D04]" />
-                          <span className="text-sm font-medium">Insert Merge Field</span>
-                          <span className="text-xs text-muted-foreground">(Click to add at cursor position)</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(mergeFields).map(([category, fields]) => {
-                            const IconComponent = CATEGORY_ICONS[category] || Code;
-                            return (
-                              <Popover key={category}>
-                                <PopoverTrigger asChild>
-                                  <Button variant="outline" size="sm" className="h-8">
-                                    <IconComponent className="w-3 h-3 mr-1" />
-                                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                                    <ChevronDown className="w-3 h-3 ml-1" />
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-64 p-2" align="start">
-                                  <ScrollArea className="h-48">
-                                    <div className="space-y-1">
-                                      {fields.map((f) => (
-                                        <Button
-                                          key={f.field}
-                                          variant="ghost"
-                                          size="sm"
-                                          className="w-full justify-start text-xs h-auto py-2"
-                                          onClick={() => insertMergeField(f.field)}
-                                        >
-                                          <div className="text-left">
-                                            <div className="font-mono text-[#E85D04]">{f.field}</div>
-                                            <div className="text-muted-foreground">{f.label}</div>
-                                          </div>
-                                        </Button>
-                                      ))}
-                                    </div>
-                                  </ScrollArea>
-                                </PopoverContent>
-                              </Popover>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {newTemplate.template_type === 'email' && (
-                        <div>
-                          <Label>Subject Line</Label>
-                          <Input
-                            ref={subjectRef}
-                            value={newTemplate.subject}
-                            onChange={(e) => setNewTemplate({...newTemplate, subject: e.target.value})}
-                            onFocus={() => setActiveField('subject')}
-                            placeholder="Email subject with {{merge_fields}}"
-                            required
-                            data-testid="template-subject"
-                            className="font-mono text-sm"
-                          />
-                        </div>
-                      )}
-                      
-                      <div>
-                        <Label>{newTemplate.template_type === 'sms' ? 'Message' : 'Body'}</Label>
-                        <Textarea
-                          ref={bodyRef}
-                          value={newTemplate.body}
-                          onChange={(e) => setNewTemplate({...newTemplate, body: e.target.value})}
-                          onFocus={() => setActiveField('body')}
-                          placeholder="Write your message with {{merge_fields}}..."
-                          rows={newTemplate.template_type === 'sms' ? 4 : 12}
-                          required
-                          data-testid="template-body"
-                          className="font-mono text-sm"
-                        />
-                        {newTemplate.template_type === 'sms' && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {newTemplate.body.length}/160 characters (SMS limit per segment)
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Preview Section */}
-                      <div className="border rounded-lg p-4 bg-[#E85D04]/5">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Eye className="w-4 h-4 text-[#E85D04]" />
-                            <span className="font-medium">Preview</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Select value={previewCamperId} onValueChange={setPreviewCamperId}>
-                              <SelectTrigger className="w-48 h-8">
-                                <SelectValue placeholder="Select camper for preview" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="sample">Sample Data</SelectItem>
-                                {campers.map(c => (
-                                  <SelectItem key={c.id} value={c.id}>
-                                    {c.first_name} {c.last_name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handlePreviewTemplate}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              Preview
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {previewData && (
-                          <div className="bg-white rounded-lg p-4 space-y-2">
-                            {newTemplate.template_type === 'email' && (
-                              <div>
-                                <span className="text-xs text-muted-foreground">Subject:</span>
-                                <p className="font-medium">{previewData.subject}</p>
-                              </div>
-                            )}
-                            <div>
-                              <span className="text-xs text-muted-foreground">
-                                {newTemplate.template_type === 'sms' ? 'Message:' : 'Body:'}
-                              </span>
-                              <div className="whitespace-pre-wrap text-sm mt-1 p-3 bg-gray-50 rounded">
-                                {previewData.body}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <DialogFooter className="gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowAddTemplate(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit" className="btn-camp-primary" data-testid="save-template-btn">
-                          {editingTemplate ? 'Update Template' : 'Create Template'}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button className="btn-camp-primary" onClick={() => openTemplateEditor()}>
+                <Plus className="w-4 h-4 mr-2" /> New Template
+              </Button>
             </CardHeader>
             <CardContent>
-              {/* Filter by type */}
-              <Tabs defaultValue="all" className="mb-4">
-                <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="email">
-                    <Mail className="w-3 h-3 mr-1" />
-                    Email
-                  </TabsTrigger>
-                  <TabsTrigger value="sms">
-                    <MessageSquare className="w-3 h-3 mr-1" />
-                    SMS
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="all" className="mt-4">
-                  <TemplateList 
-                    templates={templates} 
-                    onEdit={openEditTemplate} 
-                    onDelete={handleDeleteTemplate}
-                  />
-                </TabsContent>
-                <TabsContent value="email" className="mt-4">
-                  <TemplateList 
-                    templates={templates.filter(t => t.template_type === 'email' || !t.template_type)} 
-                    onEdit={openEditTemplate} 
-                    onDelete={handleDeleteTemplate}
-                  />
-                </TabsContent>
-                <TabsContent value="sms" className="mt-4">
-                  <TemplateList 
-                    templates={templates.filter(t => t.template_type === 'sms')} 
-                    onEdit={openEditTemplate} 
-                    onDelete={handleDeleteTemplate}
-                  />
-                </TabsContent>
-              </Tabs>
+              <div className="space-y-3">
+                {templates.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No templates yet. Create your first template.</p>
+                ) : (
+                  templates.map(template => (
+                    <div key={template.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-3">
+                        {template.template_type === 'email' ? (
+                          <Mail className="w-5 h-5 text-blue-500" />
+                        ) : (
+                          <MessageSquare className="w-5 h-5 text-green-500" />
+                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{template.name}</p>
+                            {template.trigger && template.trigger !== 'none' && (
+                              <Badge className="bg-amber-100 text-amber-700">
+                                <Zap className="w-3 h-3 mr-1" />
+                                {TEMPLATE_TRIGGERS.find(t => t.value === template.trigger)?.label?.replace('⚡ ', '') || 'Auto'}
+                              </Badge>
+                            )}
+                          </div>
+                          {template.subject && (
+                            <p className="text-sm text-muted-foreground truncate max-w-md">{template.subject}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openTemplateEditor(template)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeleteTemplate(template.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
+
+          {/* Template Editor Dialog */}
+          <Dialog open={showTemplateEditor} onOpenChange={setShowTemplateEditor}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingTemplate ? 'Edit Template' : 'New Template'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Template Name *</Label>
+                    <Input value={templateForm.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} placeholder="e.g., Acceptance Email" />
+                  </div>
+                  <div>
+                    <Label>Type</Label>
+                    <Select value={templateForm.template_type} onValueChange={(v) => setTemplateForm({ ...templateForm, template_type: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="sms">SMS</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label>Auto-Send Trigger</Label>
+                  <Select value={templateForm.trigger} onValueChange={(v) => setTemplateForm({ ...templateForm, trigger: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TEMPLATE_TRIGGERS.map(t => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">⚡ triggers will auto-send when the event occurs</p>
+                </div>
+                {templateForm.template_type === 'email' && (
+                  <div>
+                    <Label>Subject</Label>
+                    <Input value={templateForm.subject} onChange={(e) => setTemplateForm({ ...templateForm, subject: e.target.value })} placeholder="Email subject line" />
+                  </div>
+                )}
+                <div>
+                  <Label>Body</Label>
+                  <Textarea value={templateForm.body} onChange={(e) => setTemplateForm({ ...templateForm, body: e.target.value })} rows={10} placeholder="Message content..." />
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm font-medium mb-2">Available Merge Fields:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {MERGE_FIELDS.map(f => (
+                      <Badge key={f.field} variant="outline" className="cursor-pointer hover:bg-gray-100" onClick={() => setTemplateForm({ ...templateForm, body: templateForm.body + f.field })} title={f.description}>
+                        {f.field}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowTemplateEditor(false)}>Cancel</Button>
+                <Button className="btn-camp-primary" onClick={handleSaveTemplate}>
+                  <Save className="w-4 h-4 mr-2" /> Save Template
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
-        {/* Admin Management */}
-        <TabsContent value="admins">
+        {/* API Keys Tab */}
+        <TabsContent value="integrations">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="card-camp">
+              <CardHeader>
+                <CardTitle className="font-heading text-xl flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  Twilio (SMS)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Account SID</Label>
+                  <Input value={apiKeys.twilio_account_sid} onChange={(e) => setApiKeys({ ...apiKeys, twilio_account_sid: e.target.value })} placeholder="AC..." />
+                </div>
+                <div>
+                  <Label>Auth Token</Label>
+                  <div className="relative">
+                    <Input type={showKeys.twilio_auth ? 'text' : 'password'} value={apiKeys.twilio_auth_token} onChange={(e) => setApiKeys({ ...apiKeys, twilio_auth_token: e.target.value })} />
+                    <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, twilio_auth: !showKeys.twilio_auth })}>
+                      {showKeys.twilio_auth ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label>Phone Number</Label>
+                  <Input value={apiKeys.twilio_phone_number} onChange={(e) => setApiKeys({ ...apiKeys, twilio_phone_number: e.target.value })} placeholder="+1..." />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="card-camp">
+              <CardHeader>
+                <CardTitle className="font-heading text-xl flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-red-500" />
+                  Gmail API
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Client ID</Label>
+                  <Input value={apiKeys.gmail_client_id} onChange={(e) => setApiKeys({ ...apiKeys, gmail_client_id: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Client Secret</Label>
+                  <div className="relative">
+                    <Input type={showKeys.gmail_secret ? 'text' : 'password'} value={apiKeys.gmail_client_secret} onChange={(e) => setApiKeys({ ...apiKeys, gmail_client_secret: e.target.value })} />
+                    <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, gmail_secret: !showKeys.gmail_secret })}>
+                      {showKeys.gmail_secret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <Button className="btn-camp-primary mt-6" onClick={handleSaveApiKeys}>
+            <Save className="w-4 h-4 mr-2" /> Save API Keys
+          </Button>
+        </TabsContent>
+
+        {/* Trash Tab */}
+        <TabsContent value="trash">
           <Card className="card-camp">
             <CardHeader>
               <CardTitle className="font-heading text-xl flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-[#E85D04]" />
-                Pending Admin Approvals
+                <Trash2 className="w-5 h-5 text-red-500" />
+                Deleted Campers
               </CardTitle>
-              <CardDescription>Approve new admin registrations</CardDescription>
+              <CardDescription>Restore or permanently delete campers</CardDescription>
             </CardHeader>
             <CardContent>
-              {pendingAdmins.length > 0 ? (
-                <div className="space-y-3">
-                  {pendingAdmins.map((pendingAdmin) => (
-                    <div key={pendingAdmin.id} className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <div>
-                        <p className="font-medium">{pendingAdmin.name}</p>
-                        <p className="text-sm text-muted-foreground">{pendingAdmin.email}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Registered: {new Date(pendingAdmin.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => handleApproveAdmin(pendingAdmin.id)}
-                        className="btn-camp-primary"
-                        data-testid={`approve-admin-${pendingAdmin.id}`}
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  ))}
+              {loadingTrash ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E85D04]"></div>
                 </div>
+              ) : trash.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">Trash is empty</p>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <UserCheck className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p>No pending admin approvals</p>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Yeshiva</TableHead>
+                      <TableHead>Deleted</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {trash.map(camper => (
+                      <TableRow key={camper.id}>
+                        <TableCell className="font-medium">{camper.first_name} {camper.last_name}</TableCell>
+                        <TableCell>{camper.yeshiva || '-'}</TableCell>
+                        <TableCell>{new Date(camper.deleted_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleRestoreCamper(camper.id)}>
+                              <Undo2 className="w-4 h-4 mr-1" /> Restore
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handlePermanentDelete(camper.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Current Admin Info */}
-          <Card className="card-camp mt-6">
-            <CardHeader>
-              <CardTitle className="font-heading text-xl">Current Admin</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 p-4 bg-[#E85D04]/5 rounded-lg">
-                <div className="w-12 h-12 rounded-full bg-[#E85D04] flex items-center justify-center text-white font-bold text-lg">
-                  {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
-                </div>
-                <div>
-                  <p className="font-medium">{admin?.name}</p>
-                  <p className="text-sm text-muted-foreground">{admin?.email}</p>
-                  <Badge className="mt-1 bg-[#2A9D8F]">Approved</Badge>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
-};
-
-// Template List Component
-const TemplateList = ({ templates, onEdit, onDelete }) => {
-  if (templates.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <Mail className="w-12 h-12 mx-auto mb-4 opacity-30" />
-        <p>No templates in this category</p>
-      </div>
-    );
-  }
-
-  // Check if template has an auto trigger
-  const isAutoTemplate = (trigger) => {
-    const opt = TRIGGER_OPTIONS.find(t => t.value === trigger);
-    return opt?.auto === true;
-  };
-
-  return (
-    <div className="space-y-3">
-      {templates.map((template) => {
-        const hasAutoTrigger = isAutoTemplate(template.trigger);
-        return (
-          <div key={template.id} className={`flex items-start justify-between p-4 rounded-lg hover:bg-gray-100 transition-colors ${hasAutoTrigger ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                {hasAutoTrigger && (
-                  <Zap className="w-4 h-4 text-yellow-500" />
-                )}
-                {template.template_type === 'sms' ? (
-                  <MessageSquare className="w-4 h-4 text-blue-500" />
-                ) : (
-                  <Mail className="w-4 h-4 text-purple-500" />
-                )}
-                <p className="font-medium">{template.name}</p>
-                {hasAutoTrigger && (
-                  <Badge className="bg-yellow-100 text-yellow-800 text-[10px]">AUTO</Badge>
-                )}
-              </div>
-              {template.subject && (
-                <p className="text-sm text-muted-foreground mt-1">{template.subject}</p>
-              )}
-              <div className="flex items-center gap-2 mt-2">
-                {template.trigger && (
-                  <Badge variant="outline" className={`text-xs ${hasAutoTrigger ? 'border-yellow-400 text-yellow-700' : ''}`}>
-                    {hasAutoTrigger && <Zap className="w-3 h-3 mr-1" />}
-                    {TRIGGER_OPTIONS.find(t => t.value === template.trigger)?.label || template.trigger}
-                  </Badge>
-                )}
-                <Badge 
-                  variant="secondary" 
-                  className={template.template_type === 'sms' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}
-                >
-                  {template.template_type === 'sms' ? 'SMS' : 'Email'}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(template)}
-                data-testid={`edit-template-${template.id}`}
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                onClick={() => onDelete(template.id)}
-                data-testid={`delete-template-${template.id}`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+}
 
 export default Settings;
