@@ -1875,6 +1875,82 @@ async def get_expense_categories(admin=Depends(get_current_admin)):
     categories = await db.expenses.distinct("category")
     return {"categories": categories}
 
+# ==================== SAVED REPORTS/LISTS ====================
+
+class SavedReportCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    columns: List[str]
+    filters: Optional[dict] = None
+    sort_by: Optional[str] = None
+    sort_order: Optional[str] = "asc"
+
+@api_router.get("/reports")
+async def get_saved_reports(admin=Depends(get_current_admin)):
+    """Get all saved reports/lists"""
+    reports = await db.saved_reports.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return reports
+
+@api_router.post("/reports")
+async def create_saved_report(data: SavedReportCreate, admin=Depends(get_current_admin)):
+    """Create a new saved report/list"""
+    report_doc = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "created_by": admin.get("id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.saved_reports.insert_one(report_doc)
+    return {"message": "Report saved", "id": report_doc["id"]}
+
+@api_router.get("/reports/{report_id}")
+async def get_saved_report(report_id: str, admin=Depends(get_current_admin)):
+    """Get a specific saved report with data"""
+    report = await db.saved_reports.find_one({"id": report_id}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Get camper data based on report config
+    query = report.get("filters", {}) or {}
+    campers = await db.campers.find(query, {"_id": 0}).to_list(1000)
+    
+    # Sort if configured
+    if report.get("sort_by"):
+        reverse = report.get("sort_order", "asc") == "desc"
+        campers.sort(key=lambda x: x.get(report["sort_by"], ""), reverse=reverse)
+    
+    # Filter to only requested columns
+    columns = report.get("columns", [])
+    if columns:
+        filtered_data = []
+        for camper in campers:
+            row = {"id": camper["id"]}
+            for col in columns:
+                row[col] = camper.get(col, "")
+            filtered_data.append(row)
+        campers = filtered_data
+    
+    return {"report": report, "data": campers}
+
+@api_router.put("/reports/{report_id}")
+async def update_saved_report(report_id: str, data: SavedReportCreate, admin=Depends(get_current_admin)):
+    """Update a saved report"""
+    result = await db.saved_reports.update_one(
+        {"id": report_id},
+        {"$set": data.model_dump()}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"message": "Report updated"}
+
+@api_router.delete("/reports/{report_id}")
+async def delete_saved_report(report_id: str, admin=Depends(get_current_admin)):
+    """Delete a saved report"""
+    result = await db.saved_reports.delete_one({"id": report_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return {"message": "Report deleted"}
+
 # ==================== FINANCIAL ROUTES ====================
 
 @api_router.get("/financial/summary")
