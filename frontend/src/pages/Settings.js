@@ -769,57 +769,73 @@ const TemplateList = ({ templates, onEdit, onDelete }) => {
     );
   }
 
+  // Check if template has an auto trigger
+  const isAutoTemplate = (trigger) => {
+    const opt = TRIGGER_OPTIONS.find(t => t.value === trigger);
+    return opt?.auto === true;
+  };
+
   return (
     <div className="space-y-3">
-      {templates.map((template) => (
-        <div key={template.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              {template.template_type === 'sms' ? (
-                <MessageSquare className="w-4 h-4 text-blue-500" />
-              ) : (
-                <Mail className="w-4 h-4 text-purple-500" />
+      {templates.map((template) => {
+        const hasAutoTrigger = isAutoTemplate(template.trigger);
+        return (
+          <div key={template.id} className={`flex items-start justify-between p-4 rounded-lg hover:bg-gray-100 transition-colors ${hasAutoTrigger ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                {hasAutoTrigger && (
+                  <Zap className="w-4 h-4 text-yellow-500" />
+                )}
+                {template.template_type === 'sms' ? (
+                  <MessageSquare className="w-4 h-4 text-blue-500" />
+                ) : (
+                  <Mail className="w-4 h-4 text-purple-500" />
+                )}
+                <p className="font-medium">{template.name}</p>
+                {hasAutoTrigger && (
+                  <Badge className="bg-yellow-100 text-yellow-800 text-[10px]">AUTO</Badge>
+                )}
+              </div>
+              {template.subject && (
+                <p className="text-sm text-muted-foreground mt-1">{template.subject}</p>
               )}
-              <p className="font-medium">{template.name}</p>
-            </div>
-            {template.subject && (
-              <p className="text-sm text-muted-foreground mt-1">{template.subject}</p>
-            )}
-            <div className="flex items-center gap-2 mt-2">
-              {template.trigger && (
-                <Badge variant="outline" className="text-xs">
-                  {TRIGGER_OPTIONS.find(t => t.value === template.trigger)?.label || template.trigger}
+              <div className="flex items-center gap-2 mt-2">
+                {template.trigger && (
+                  <Badge variant="outline" className={`text-xs ${hasAutoTrigger ? 'border-yellow-400 text-yellow-700' : ''}`}>
+                    {hasAutoTrigger && <Zap className="w-3 h-3 mr-1" />}
+                    {TRIGGER_OPTIONS.find(t => t.value === template.trigger)?.label || template.trigger}
+                  </Badge>
+                )}
+                <Badge 
+                  variant="secondary" 
+                  className={template.template_type === 'sms' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}
+                >
+                  {template.template_type === 'sms' ? 'SMS' : 'Email'}
                 </Badge>
-              )}
-              <Badge 
-                variant="secondary" 
-                className={template.template_type === 'sms' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(template)}
+                data-testid={`edit-template-${template.id}`}
               >
-                {template.template_type === 'sms' ? 'SMS' : 'Email'}
-              </Badge>
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={() => onDelete(template.id)}
+                data-testid={`delete-template-${template.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(template)}
-              data-testid={`edit-template-${template.id}`}
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-              onClick={() => onDelete(template.id)}
-              data-testid={`delete-template-${template.id}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
