@@ -1198,10 +1198,12 @@ async def get_stripe_status(session_id: str, request: Request):
                     {"$set": {"paid_amount": new_paid, "status": new_status}}
                 )
                 
-                await db.parents.update_one(
-                    {"id": invoice["parent_id"]},
-                    {"$inc": {"total_paid": transaction["amount"]}}
-                )
+                # Update camper's total_paid (parent info now embedded in camper)
+                if invoice.get("camper_id"):
+                    await db.campers.update_one(
+                        {"id": invoice["camper_id"]},
+                        {"$inc": {"total_paid": transaction["amount"]}}
+                    )
     
     return {
         "status": status.status,
