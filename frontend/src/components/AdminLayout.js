@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import GlobalSearch from '@/components/GlobalSearch';
 import {
   LayoutDashboard,
   Users,
@@ -14,9 +13,11 @@ import {
   Settings,
   LogOut,
   Menu,
-  ChevronRight
+  ChevronRight,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
