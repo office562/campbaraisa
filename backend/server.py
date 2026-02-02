@@ -1757,13 +1757,14 @@ async def update_settings(data: SettingsBase, admin=Depends(get_current_admin)):
 @api_router.get("/exports/campers")
 async def export_campers(admin=Depends(get_current_admin)):
     campers = await db.campers.find({}, {"_id": 0}).to_list(1000)
-    parent_ids = list(set(c["parent_id"] for c in campers))
-    parents = await db.parents.find({"id": {"$in": parent_ids}}, {"_id": 0}).to_list(1000)
-    parent_map = {p["id"]: p for p in parents}
     
     export_data = []
     for camper in campers:
-        parent = parent_map.get(camper["parent_id"], {})
+        # Parent info is now embedded in camper
+        parent_name = f"{camper.get('father_first_name', '')} {camper.get('father_last_name', '')}".strip()
+        if not parent_name:
+            parent_name = f"{camper.get('mother_first_name', '')} {camper.get('mother_last_name', '')}".strip()
+        
         export_data.append({
             "Camper ID": camper["id"],
             "First Name": camper["first_name"],
@@ -1772,10 +1773,14 @@ async def export_campers(admin=Depends(get_current_admin)):
             "Grade": camper.get("grade", ""),
             "Yeshiva": camper.get("yeshiva", ""),
             "Status": camper.get("status", ""),
-            "Room": camper.get("room", ""),
-            "Parent Name": f"{parent.get('first_name', '')} {parent.get('last_name', '')}".strip(),
-            "Parent Email": parent.get("email", ""),
-            "Parent Phone": parent.get("phone", "")
+            "Room": camper.get("room_name", ""),
+            "Parent Name": parent_name,
+            "Parent Email": camper.get("parent_email", ""),
+            "Parent Phone": camper.get("father_cell") or camper.get("mother_cell") or "",
+            "Due Date": camper.get("due_date", ""),
+            "Total Balance": camper.get("total_balance", 0),
+            "Total Paid": camper.get("total_paid", 0),
+            "Portal Link": f"/portal/{camper.get('portal_token', '')}" if camper.get("portal_token") else ""
         })
     
     return {"data": export_data, "filename": "campers_export.csv"}
@@ -1783,17 +1788,22 @@ async def export_campers(admin=Depends(get_current_admin)):
 @api_router.get("/exports/billing")
 async def export_billing(admin=Depends(get_current_admin)):
     invoices = await db.invoices.find({}, {"_id": 0}).to_list(1000)
-    parent_ids = list(set(inv["parent_id"] for inv in invoices))
-    parents = await db.parents.find({"id": {"$in": parent_ids}}, {"_id": 0}).to_list(1000)
-    parent_map = {p["id"]: p for p in parents}
+    
+    # Get campers for enrichment
+    camper_ids = list(set(inv.get("camper_id") for inv in invoices if inv.get("camper_id")))
+    campers = await db.campers.find({"id": {"$in": camper_ids}}, {"_id": 0}).to_list(1000)
+    camper_map = {c["id"]: c for c in campers}
     
     export_data = []
     for inv in invoices:
-        parent = parent_map.get(inv["parent_id"], {})
+        camper = camper_map.get(inv.get("camper_id"), {})
+        parent_name = f"{camper.get('father_first_name', '')} {camper.get('father_last_name', '')}".strip()
+        
         export_data.append({
             "Invoice ID": inv["id"],
-            "Parent Name": f"{parent.get('first_name', '')} {parent.get('last_name', '')}".strip(),
-            "Parent Email": parent.get("email", ""),
+            "Camper Name": f"{camper.get('first_name', '')} {camper.get('last_name', '')}".strip(),
+            "Parent Name": parent_name,
+            "Parent Email": camper.get("parent_email", ""),
             "Amount": inv["amount"],
             "Paid Amount": inv["paid_amount"],
             "Status": inv["status"],
@@ -1803,28 +1813,6 @@ async def export_billing(admin=Depends(get_current_admin)):
         })
     
     return {"data": export_data, "filename": "billing_export.csv"}
-
-@api_router.get("/exports/parents")
-async def export_parents(admin=Depends(get_current_admin)):
-    parents = await db.parents.find({}, {"_id": 0}).to_list(1000)
-    
-    export_data = []
-    for parent in parents:
-        export_data.append({
-            "Parent ID": parent["id"],
-            "First Name": parent["first_name"],
-            "Last Name": parent["last_name"],
-            "Email": parent["email"],
-            "Phone": parent.get("phone", ""),
-            "Address": parent.get("address", ""),
-            "City": parent.get("city", ""),
-            "State": parent.get("state", ""),
-            "Zip": parent.get("zip_code", ""),
-            "Total Balance": parent.get("total_balance", 0),
-            "Total Paid": parent.get("total_paid", 0)
-        })
-    
-    return {"data": export_data, "filename": "parents_export.csv"}
 
 # ==================== PARENT PORTAL ROUTES (NO AUTH) ====================
 
