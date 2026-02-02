@@ -63,20 +63,22 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     admin: AdminResponse
 
+# Combined Camper Model (includes parent info - no separate parents)
 class CamperBase(BaseModel):
-    # Basic Info
+    # ===== CAMPER INFO =====
     first_name: str
     last_name: str
+    date_of_birth: Optional[str] = None
+    # Address
     address: Optional[str] = None
     address_line2: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
-    date_of_birth: Optional[str] = None
     # Yeshiva Info
     yeshiva: Optional[str] = None
-    yeshiva_other: Optional[str] = None  # If "Other" selected
-    grade: Optional[str] = None  # 11th, 12th, 1st yr Bais Medrash, 2nd yr Bais Medrash
+    yeshiva_other: Optional[str] = None
+    grade: Optional[str] = None
     menahel: Optional[str] = None
     rebbe_name: Optional[str] = None
     rebbe_phone: Optional[str] = None
@@ -89,6 +91,12 @@ class CamperBase(BaseModel):
     # Medical
     allergies: Optional[str] = None
     medical_info: Optional[str] = None
+    dietary_restrictions: Optional[str] = None
+    medications: Optional[str] = None
+    doctor_name: Optional[str] = None
+    doctor_phone: Optional[str] = None
+    insurance_company: Optional[str] = None
+    insurance_policy_number: Optional[str] = None
     # Emergency Contact
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
@@ -98,39 +106,65 @@ class CamperBase(BaseModel):
     rules_signature: Optional[str] = None
     waiver_agreed: bool = False
     waiver_signature: Optional[str] = None
-    # Due Date (set after acceptance)
+    # Due Date & Notes
     due_date: Optional[str] = None
-    # Notes
     notes: Optional[str] = None
+    
+    # ===== PARENT/FAMILY INFO (embedded) =====
+    parent_email: Optional[EmailStr] = None
+    # Father Info
+    father_title: Optional[str] = None
+    father_first_name: Optional[str] = None
+    father_last_name: Optional[str] = None
+    father_cell: Optional[str] = None
+    father_work_phone: Optional[str] = None
+    father_occupation: Optional[str] = None
+    # Mother Info
+    mother_title: Optional[str] = None
+    mother_first_name: Optional[str] = None
+    mother_last_name: Optional[str] = None
+    mother_cell: Optional[str] = None
+    mother_work_phone: Optional[str] = None
+    mother_occupation: Optional[str] = None
+    # Home Contact
+    home_phone: Optional[str] = None
+    
+    # ===== BILLING INFO (embedded) =====
+    total_balance: float = 0.0
+    total_paid: float = 0.0
+    payment_plan: Optional[str] = None  # none, monthly, custom
+    payment_plan_details: Optional[str] = None
+    
+    # ===== GROUPS/ROOMS =====
+    room_id: Optional[str] = None
+    room_name: Optional[str] = None
+    groups: List[str] = []  # List of group IDs
+    
+    # ===== PORTAL ACCESS =====
+    portal_token: Optional[str] = None
 
 class CamperCreate(CamperBase):
-    parent_id: str
+    pass
 
 class CamperResponse(CamperBase):
     model_config = ConfigDict(extra="ignore")
     id: str
-    parent_id: str
     status: str
-    room: Optional[str] = None
     created_at: datetime
 
+# Keep ParentBase for backwards compatibility but mark as deprecated
 class ParentBase(BaseModel):
-    # Primary Email
     email: EmailStr
-    # Father Info
-    father_title: Optional[str] = None  # Rabbi, Mr, etc.
+    father_title: Optional[str] = None
     father_first_name: Optional[str] = None
     father_last_name: Optional[str] = None
     father_cell: Optional[str] = None
-    # Mother Info
     mother_first_name: Optional[str] = None
     mother_last_name: Optional[str] = None
     mother_cell: Optional[str] = None
-    # For backwards compatibility and display
-    first_name: Optional[str] = None  # Will use father_first_name if not set
-    last_name: Optional[str] = None   # Will use father_last_name if not set
-    phone: Optional[str] = None       # Will use father_cell if not set
-    # Address (from camper but can store here too)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -147,12 +181,13 @@ class ParentResponse(ParentBase):
     total_balance: float = 0.0
     total_paid: float = 0.0
 
+# Invoice now links directly to camper
 class InvoiceBase(BaseModel):
-    parent_id: str
     camper_id: str
     amount: float
     description: str
     due_date: Optional[str] = None
+    reminder_sent_dates: List[str] = []  # Track when reminders were sent
 
 class InvoiceCreate(InvoiceBase):
     pass
@@ -163,11 +198,15 @@ class InvoiceResponse(InvoiceBase):
     status: str
     created_at: datetime
     paid_amount: float = 0.0
+    next_reminder_date: Optional[str] = None
 
 class PaymentBase(BaseModel):
     invoice_id: str
+    camper_id: Optional[str] = None
     amount: float
-    method: str  # stripe, check, zelle, cash, other
+    method: str  # stripe, check, zelle, cash, internal
+    include_fee: bool = True  # Whether 3.5% fee was included
+    fee_amount: float = 0.0
     notes: Optional[str] = None
 
 class PaymentCreate(PaymentBase):
