@@ -567,6 +567,131 @@ async def approve_admin(admin_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail="Admin not found")
     return {"message": "Admin approved successfully"}
 
+@api_router.post("/auth/deny/{admin_id}")
+async def deny_admin(admin_id: str, admin=Depends(get_current_admin)):
+    """Deny and delete pending admin"""
+    result = await db.admins.delete_one({"id": admin_id, "is_approved": False})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pending admin not found")
+    return {"message": "Admin denied and removed"}
+
+# ==================== ADMIN MANAGEMENT ====================
+
+@api_router.get("/admins")
+async def get_all_admins(admin=Depends(get_current_admin)):
+    """Get all admins (approved and pending)"""
+    admins = await db.admins.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
+    for a in admins:
+        a["created_at"] = datetime.fromisoformat(a["created_at"]) if isinstance(a["created_at"], str) else a["created_at"]
+    return admins
+
+class AdminCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str = "admin"
+    phone: Optional[str] = None
+
+@api_router.post("/admins")
+async def create_admin(data: AdminCreate, admin=Depends(get_current_admin)):
+    """Create a new admin (from main admin account)"""
+    # Check if email exists
+    existing = await db.admins.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    admin_doc = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "email": data.email,
+        "password_hash": bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode(),
+        "role": data.role,
+        "phone": data.phone,
+        "is_approved": True,  # Auto-approve when created by admin
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.admins.insert_one(admin_doc)
+    
+    return {"message": "Admin created successfully", "id": admin_doc["id"]}
+
+class AdminUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[str] = None
+    is_approved: Optional[bool] = None
+
+@api_router.put("/admins/{admin_id}")
+async def update_admin(admin_id: str, data: AdminUpdate, admin=Depends(get_current_admin)):
+    """Update admin details"""
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    result = await db.admins.update_one({"id": admin_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    return {"message": "Admin updated successfully"}
+
+@api_router.delete("/admins/{admin_id}")
+async def delete_admin(admin_id: str, admin=Depends(get_current_admin)):
+    """Delete an admin"""
+    if admin_id == admin.get("id"):
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    
+    result = await db.admins.delete_one({"id": admin_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    return {"message": "Admin deleted successfully"}
+
+# ==================== ACCOUNT SETTINGS ====================
+
+class AccountUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+@api_router.put("/account")
+async def update_account(data: AccountUpdate, admin=Depends(get_current_admin)):
+    """Update current user's account settings"""
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    # Check if email is being changed and if it's already taken
+    if data.email and data.email != admin.get("email"):
+        existing = await db.admins.find_one({"email": data.email})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already in use")
+    
+    await db.admins.update_one({"id": admin["id"]}, {"$set": update_data})
+    
+    return {"message": "Account updated successfully"}
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+@api_router.put("/account/password")
+async def change_password(data: PasswordChange, admin=Depends(get_current_admin)):
+    """Change current user's password"""
+    # Get full admin record with password
+    admin_full = await db.admins.find_one({"id": admin["id"]})
+    if not admin_full:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    # Verify current password
+    if not bcrypt.checkpw(data.current_password.encode(), admin_full["password_hash"].encode()):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Update password
+    new_hash = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt()).decode()
+    await db.admins.update_one({"id": admin["id"]}, {"$set": {"password_hash": new_hash}})
+    
+    return {"message": "Password changed successfully"}
+
 # ==================== GLOBAL SEARCH ====================
 
 @api_router.get("/search")
