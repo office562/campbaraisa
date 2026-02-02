@@ -279,96 +279,6 @@ function Campers() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Dialog open={showAddParent} onOpenChange={setShowAddParent}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="btn-camp-outline" data-testid="add-parent-btn">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add Parent
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="font-heading text-2xl">Add New Parent</DialogTitle>
-                <DialogDescription>Enter parent/guardian information</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddParent} className="space-y-4">
-                <div>
-                  <Label>Primary Email *</Label>
-                  <Input
-                    type="email"
-                    value={newParent.email}
-                    onChange={function(e) { setNewParent({...newParent, email: e.target.value}); }}
-                    required
-                    data-testid="parent-email"
-                  />
-                </div>
-                <div className="border-t pt-4">
-                  <p className="font-medium mb-3">Father's Information</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>First Name *</Label>
-                      <Input
-                        value={newParent.father_first_name}
-                        onChange={function(e) { setNewParent({...newParent, father_first_name: e.target.value}); }}
-                        required
-                        data-testid="parent-father-first"
-                      />
-                    </div>
-                    <div>
-                      <Label>Last Name *</Label>
-                      <Input
-                        value={newParent.father_last_name}
-                        onChange={function(e) { setNewParent({...newParent, father_last_name: e.target.value}); }}
-                        required
-                        data-testid="parent-father-last"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <Label>Father's Cell *</Label>
-                    <Input
-                      value={newParent.father_cell}
-                      onChange={function(e) { setNewParent({...newParent, father_cell: e.target.value}); }}
-                      required
-                      data-testid="parent-father-cell"
-                    />
-                  </div>
-                </div>
-                <div className="border-t pt-4">
-                  <p className="font-medium mb-3">Mother's Information</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>First Name</Label>
-                      <Input
-                        value={newParent.mother_first_name}
-                        onChange={function(e) { setNewParent({...newParent, mother_first_name: e.target.value}); }}
-                      />
-                    </div>
-                    <div>
-                      <Label>Last Name</Label>
-                      <Input
-                        value={newParent.mother_last_name}
-                        onChange={function(e) { setNewParent({...newParent, mother_last_name: e.target.value}); }}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <Label>Mother's Cell</Label>
-                    <Input
-                      value={newParent.mother_cell}
-                      onChange={function(e) { setNewParent({...newParent, mother_cell: e.target.value}); }}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" className="btn-camp-primary" data-testid="save-parent-btn">
-                    Save Parent
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-
           <Dialog open={showAddCamper} onOpenChange={setShowAddCamper}>
             <DialogTrigger asChild>
               <Button className="btn-camp-primary" data-testid="add-camper-btn">
@@ -379,34 +289,85 @@ function Campers() {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-heading text-2xl">Add New Camper</DialogTitle>
-                <DialogDescription>Enter camper registration details</DialogDescription>
+                <DialogDescription>Enter camper and parent information</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddCamper} className="space-y-6">
-                {/* Parent Selection */}
-                <div>
-                  <Label>Parent/Guardian *</Label>
-                  <Select
-                    value={newCamper.parent_id}
-                    onValueChange={function(value) { setNewCamper({...newCamper, parent_id: value}); }}
-                  >
-                    <SelectTrigger data-testid="camper-parent-select">
-                      <SelectValue placeholder="Select parent" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {parents.map(function(parent) {
-                        return (
-                          <SelectItem key={parent.id} value={parent.id}>
-                            {getParentName(parent.id)} ({parent.email})
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                {/* Parent/Guardian Info */}
+                <div className="border-b pb-4">
+                  <p className="font-medium mb-3 text-[#E85D04]">Parent/Guardian Information</p>
+                  <div>
+                    <Label>Parent Email *</Label>
+                    <Input
+                      type="email"
+                      value={newCamper.parent_email}
+                      onChange={function(e) { setNewCamper({...newCamper, parent_email: e.target.value}); }}
+                      required
+                      data-testid="camper-parent-email"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm text-muted-foreground mb-2">Father's Information</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>First Name *</Label>
+                        <Input
+                          value={newCamper.father_first_name}
+                          onChange={function(e) { setNewCamper({...newCamper, father_first_name: e.target.value}); }}
+                          required
+                          data-testid="camper-father-first"
+                        />
+                      </div>
+                      <div>
+                        <Label>Last Name *</Label>
+                        <Input
+                          value={newCamper.father_last_name}
+                          onChange={function(e) { setNewCamper({...newCamper, father_last_name: e.target.value}); }}
+                          required
+                          data-testid="camper-father-last"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <Label>Father's Cell *</Label>
+                      <Input
+                        value={newCamper.father_cell}
+                        onChange={function(e) { setNewCamper({...newCamper, father_cell: e.target.value}); }}
+                        required
+                        data-testid="camper-father-cell"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm text-muted-foreground mb-2">Mother's Information (Optional)</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>First Name</Label>
+                        <Input
+                          value={newCamper.mother_first_name}
+                          onChange={function(e) { setNewCamper({...newCamper, mother_first_name: e.target.value}); }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Last Name</Label>
+                        <Input
+                          value={newCamper.mother_last_name}
+                          onChange={function(e) { setNewCamper({...newCamper, mother_last_name: e.target.value}); }}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <Label>Mother's Cell</Label>
+                      <Input
+                        value={newCamper.mother_cell}
+                        onChange={function(e) { setNewCamper({...newCamper, mother_cell: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Basic Info */}
                 <div className="border-t pt-4">
-                  <p className="font-medium mb-3">Camper Information</p>
+                  <p className="font-medium mb-3 text-[#E85D04]">Camper Information</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>First Name *</Label>
