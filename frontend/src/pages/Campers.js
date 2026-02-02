@@ -686,7 +686,18 @@ function Campers() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className="text-xs text-muted-foreground">Click to view →</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={function(e) { 
+                            e.stopPropagation(); 
+                            handleDeleteCamper(camper.id, camper.first_name + ' ' + camper.last_name); 
+                          }}
+                          data-testid={`delete-camper-${camper.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
