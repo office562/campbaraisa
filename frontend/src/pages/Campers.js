@@ -693,7 +693,7 @@ function Campers() {
       </Card>
 
       {/* Summary Stats */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg p-4 border">
           <p className="text-2xl font-bold text-[#E85D04]">{campers.length}</p>
           <p className="text-sm text-muted-foreground">Total Campers</p>
@@ -705,10 +705,6 @@ function Campers() {
         <div className="bg-white rounded-lg p-4 border">
           <p className="text-2xl font-bold text-[#F4A261]">{yeshivasUsed.length}</p>
           <p className="text-sm text-muted-foreground">Yeshivas</p>
-        </div>
-        <div className="bg-white rounded-lg p-4 border">
-          <p className="text-2xl font-bold text-[#264653]">{parents.length}</p>
-          <p className="text-sm text-muted-foreground">Families</p>
         </div>
       </div>
     </div>
