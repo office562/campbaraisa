@@ -1463,6 +1463,30 @@ async def log_activity(entity_type: str, entity_id: str, action: str, details: d
     await db.activity_logs.insert_one(log_doc)
     return log_doc
 
+@api_router.get("/activities")
+async def get_activities(
+    entity_type: Optional[str] = None,
+    entity_id: Optional[str] = None,
+    admin=Depends(get_current_admin)
+):
+    """Get activity logs with flexible filtering"""
+    query = {}
+    if entity_type:
+        query["entity_type"] = entity_type
+    if entity_id:
+        query["entity_id"] = entity_id
+    
+    logs = await db.activity_logs.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Enrich with admin names
+    for log in logs:
+        if log.get("performed_by"):
+            admin_user = await db.admins.find_one({"id": log["performed_by"]}, {"_id": 0})
+            log["performed_by_name"] = admin_user.get("name") if admin_user else "Unknown"
+        log["created_at"] = datetime.fromisoformat(log["created_at"]) if isinstance(log["created_at"], str) else log["created_at"]
+    
+    return logs
+
 @api_router.get("/activity/{entity_type}/{entity_id}")
 async def get_activity_log(entity_type: str, entity_id: str, admin=Depends(get_current_admin)):
     logs = await db.activity_logs.find(
@@ -1479,9 +1503,26 @@ async def get_activity_log(entity_type: str, entity_id: str, admin=Depends(get_c
     
     return logs
 
+class NoteRequest(BaseModel):
+    entity_type: str
+    entity_id: str
+    note: str
+
+@api_router.post("/activities/note")
+async def add_activity_note(data: NoteRequest, admin=Depends(get_current_admin)):
+    """Add a note to a camper's activity log"""
+    log = await log_activity(
+        entity_type=data.entity_type,
+        entity_id=data.entity_id,
+        action="note_added",
+        details={"note": data.note},
+        performed_by=admin.get("id")
+    )
+    return {"message": "Note added", "log_id": log["id"]}
+
 @api_router.post("/activity/{entity_type}/{entity_id}/note")
 async def add_note(entity_type: str, entity_id: str, note: str = Query(...), admin=Depends(get_current_admin)):
-    """Add a note to a camper or parent"""
+    """Add a note to a camper or parent (legacy endpoint)"""
     log = await log_activity(
         entity_type=entity_type,
         entity_id=entity_id,
