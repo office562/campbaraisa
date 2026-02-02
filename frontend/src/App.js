@@ -49,6 +49,7 @@ function AppRoutes() {
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/portal/:accessToken" element={<ParentPortal />} />
+      <Route path="/apply" element={<Apply />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<Navigate to="/" replace />} />
       
