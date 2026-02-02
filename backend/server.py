@@ -64,14 +64,41 @@ class TokenResponse(BaseModel):
     admin: AdminResponse
 
 class CamperBase(BaseModel):
+    # Basic Info
     first_name: str
     last_name: str
-    hebrew_name: Optional[str] = None
+    address: Optional[str] = None
+    address_line2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
     date_of_birth: Optional[str] = None
-    grade: Optional[str] = None
+    # Yeshiva Info
     yeshiva: Optional[str] = None
+    yeshiva_other: Optional[str] = None  # If "Other" selected
+    grade: Optional[str] = None  # 11th, 12th, 1st yr Bais Medrash, 2nd yr Bais Medrash
+    menahel: Optional[str] = None
+    rebbe_name: Optional[str] = None
+    rebbe_phone: Optional[str] = None
+    previous_yeshiva: Optional[str] = None
+    # Camp History
+    camp_2024: Optional[str] = None
+    camp_2023: Optional[str] = None
+    # Photo
+    photo_url: Optional[str] = None
+    # Medical
     allergies: Optional[str] = None
-    medical_notes: Optional[str] = None
+    medical_info: Optional[str] = None
+    # Emergency Contact
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    emergency_contact_relationship: Optional[str] = None
+    # Waivers
+    rules_agreed: bool = False
+    rules_signature: Optional[str] = None
+    waiver_agreed: bool = False
+    waiver_signature: Optional[str] = None
+    # Notes
     notes: Optional[str] = None
 
 class CamperCreate(CamperBase):
