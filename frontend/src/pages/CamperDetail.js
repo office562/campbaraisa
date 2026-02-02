@@ -551,22 +551,48 @@ function CamperDetail() {
                       {parent.mother_first_name} {parent.mother_last_name}
                     </p>
                     {parent.mother_cell && (
-                      <div className="flex items-center gap-2 text-sm mt-1">
-                        <Phone className="w-3 h-3 text-muted-foreground" />
-                        <a href={'tel:' + parent.mother_cell} className="hover:underline">
-                          {parent.mother_cell}
-                        </a>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700"
+                          onClick={function() { window.location.href = 'tel:' + parent.mother_cell; }}
+                        >
+                          <Phone className="w-3 h-3 mr-1" />
+                          Call
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs hover:bg-blue-50 hover:text-blue-700"
+                          onClick={function() { window.location.href = 'sms:' + parent.mother_cell; }}
+                        >
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          SMS
+                        </Button>
                       </div>
+                    )}
+                    {parent.mother_cell && (
+                      <p className="text-xs text-muted-foreground mt-1">{parent.mother_cell}</p>
                     )}
                   </div>
                 )}
 
                 {/* Email */}
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <a href={'mailto:' + parent.email} className="text-[#E85D04] hover:underline">
-                    {parent.email}
-                  </a>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Email</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs hover:bg-purple-50 hover:text-purple-700"
+                      onClick={function() { window.location.href = 'mailto:' + parent.email; }}
+                    >
+                      <Mail className="w-3 h-3 mr-1" />
+                      Email
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{parent.email}</p>
                 </div>
               </CardContent>
             </Card>
