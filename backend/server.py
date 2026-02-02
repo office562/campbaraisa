@@ -569,16 +569,21 @@ async def approve_admin(admin_id: str, admin=Depends(get_current_admin)):
 
 @api_router.get("/search")
 async def global_search(q: str = Query(..., min_length=2), admin=Depends(get_current_admin)):
-    """Search across campers and parents"""
+    """Search across all campers (unified model - includes parent info)"""
     search_query = q.lower()
     
-    # Search campers
+    # Search campers (which now includes parent info)
     campers = await db.campers.find({}, {"_id": 0}).to_list(1000)
     matching_campers = []
     for c in campers:
-        # Search in name, yeshiva, grade
-        searchable = f"{c.get('first_name', '')} {c.get('last_name', '')} {c.get('yeshiva', '')} {c.get('grade', '')}".lower()
+        # Search in camper name, yeshiva, grade, parent info, email, phone
+        searchable = f"{c.get('first_name', '')} {c.get('last_name', '')} {c.get('yeshiva', '')} {c.get('grade', '')} {c.get('father_first_name', '')} {c.get('father_last_name', '')} {c.get('mother_first_name', '')} {c.get('mother_last_name', '')} {c.get('parent_email', '')} {c.get('father_cell', '')} {c.get('mother_cell', '')}".lower()
         if search_query in searchable:
+            # Build parent display name
+            parent_name = f"{c.get('father_first_name', '')} {c.get('father_last_name', '')}".strip()
+            if not parent_name:
+                parent_name = f"{c.get('mother_first_name', '')} {c.get('mother_last_name', '')}".strip()
+            
             matching_campers.append({
                 "id": c["id"],
                 "first_name": c.get("first_name"),
@@ -587,77 +592,53 @@ async def global_search(q: str = Query(..., min_length=2), admin=Depends(get_cur
                 "yeshiva": c.get("yeshiva"),
                 "status": c.get("status"),
                 "photo_url": c.get("photo_url"),
-                "parent_id": c.get("parent_id")
-            })
-    
-    # Search parents
-    parents = await db.parents.find({}, {"_id": 0}).to_list(1000)
-    matching_parents = []
-    for p in parents:
-        # Search in name, email, phone
-        searchable = f"{p.get('father_first_name', '')} {p.get('father_last_name', '')} {p.get('mother_first_name', '')} {p.get('mother_last_name', '')} {p.get('first_name', '')} {p.get('last_name', '')} {p.get('email', '')} {p.get('father_cell', '')} {p.get('mother_cell', '')} {p.get('phone', '')}".lower()
-        if search_query in searchable:
-            # Get camper count for this parent
-            camper_ids = [c["id"] for c in campers if c.get("parent_id") == p["id"]]
-            matching_parents.append({
-                "id": p["id"],
-                "father_first_name": p.get("father_first_name"),
-                "father_last_name": p.get("father_last_name"),
-                "first_name": p.get("first_name"),
-                "last_name": p.get("last_name"),
-                "email": p.get("email"),
-                "father_cell": p.get("father_cell"),
-                "phone": p.get("phone"),
-                "camper_count": len(camper_ids),
-                "camper_ids": camper_ids
+                "parent_name": parent_name,
+                "parent_email": c.get("parent_email"),
+                "parent_phone": c.get("father_cell") or c.get("mother_cell"),
+                "portal_token": c.get("portal_token")
             })
     
     return {
-        "campers": matching_campers[:20],  # Limit results
-        "parents": matching_parents[:20]
+        "campers": matching_campers[:30]  # Limit results
     }
 
-# ==================== PARENT ROUTES ====================
+# ==================== PARENT ROUTES (DEPRECATED - Use Campers) ====================
+# These endpoints are kept for backwards compatibility but parent data is now embedded in campers
 
-@api_router.post("/parents", response_model=ParentResponse)
-async def create_parent(data: ParentCreate, admin=Depends(get_current_admin)):
-    parent_doc = {
-        "id": str(uuid.uuid4()),
-        "access_token": secrets.token_urlsafe(32),
-        **data.model_dump(),
-        "total_balance": 0.0,
-        "total_paid": 0.0,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.parents.insert_one(parent_doc)
-    parent_doc.pop("_id", None)
-    parent_doc["created_at"] = datetime.fromisoformat(parent_doc["created_at"])
-    return ParentResponse(**parent_doc)
-
-@api_router.get("/parents", response_model=List[ParentResponse])
+@api_router.get("/parents")
 async def get_parents(admin=Depends(get_current_admin)):
-    parents = await db.parents.find({}, {"_id": 0}).to_list(1000)
-    for p in parents:
-        p["created_at"] = datetime.fromisoformat(p["created_at"])
-    return [ParentResponse(**p) for p in parents]
-
-@api_router.get("/parents/{parent_id}", response_model=ParentResponse)
-async def get_parent(parent_id: str, admin=Depends(get_current_admin)):
-    parent = await db.parents.find_one({"id": parent_id}, {"_id": 0})
-    if not parent:
-        raise HTTPException(status_code=404, detail="Parent not found")
-    parent["created_at"] = datetime.fromisoformat(parent["created_at"])
-    return ParentResponse(**parent)
-
-@api_router.put("/parents/{parent_id}", response_model=ParentResponse)
-async def update_parent(parent_id: str, data: ParentCreate, admin=Depends(get_current_admin)):
-    result = await db.parents.update_one(
-        {"id": parent_id},
-        {"$set": data.model_dump()}
-    )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Parent not found")
-    return await get_parent(parent_id, admin)
+    """Deprecated: Returns unique parent info extracted from campers for backwards compatibility"""
+    campers = await db.campers.find({}, {"_id": 0}).to_list(1000)
+    
+    # Extract unique parent info from campers based on parent_email
+    parents_map = {}
+    for c in campers:
+        email = c.get("parent_email")
+        if email and email not in parents_map:
+            parents_map[email] = {
+                "id": c["id"],  # Use camper ID as parent ID for backwards compat
+                "email": email,
+                "father_title": c.get("father_title"),
+                "father_first_name": c.get("father_first_name"),
+                "father_last_name": c.get("father_last_name"),
+                "father_cell": c.get("father_cell"),
+                "mother_first_name": c.get("mother_first_name"),
+                "mother_last_name": c.get("mother_last_name"),
+                "mother_cell": c.get("mother_cell"),
+                "first_name": c.get("father_first_name"),
+                "last_name": c.get("father_last_name"),
+                "phone": c.get("father_cell") or c.get("mother_cell"),
+                "address": c.get("address"),
+                "city": c.get("city"),
+                "state": c.get("state"),
+                "zip_code": c.get("zip_code"),
+                "access_token": c.get("portal_token"),
+                "total_balance": c.get("total_balance", 0),
+                "total_paid": c.get("total_paid", 0),
+                "created_at": c.get("created_at")
+            }
+    
+    return list(parents_map.values())
 
 # ==================== CAMPER ROUTES (Combined with Parent data) ====================
 
