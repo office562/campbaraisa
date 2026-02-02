@@ -686,6 +686,15 @@ async def update_camper_status(camper_id: str, status: str = Query(...), admin=D
     old_status = camper.get("status")
     await db.campers.update_one({"id": camper_id}, {"$set": {"status": status}})
     
+    # Log the activity
+    await log_activity(
+        entity_type="camper",
+        entity_id=camper_id,
+        action="status_changed",
+        details={"old_status": old_status, "new_status": status},
+        performed_by=admin.get("id")
+    )
+    
     # Trigger automated emails based on status change
     parent = await db.parents.find_one({"id": camper["parent_id"]}, {"_id": 0})
     
@@ -710,6 +719,15 @@ Thank you and looking forward!""",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.communications.insert_one(comm_doc)
+        
+        # Log activity
+        await log_activity(
+            entity_type="camper",
+            entity_id=camper_id,
+            action="email_queued",
+            details={"type": "acceptance", "email_id": comm_doc["id"]},
+            performed_by=admin.get("id")
+        )
     
     elif status == "Paid in Full" and old_status != "Paid in Full":
         # Log paid in full email
@@ -728,6 +746,15 @@ Camp Baraisa Team""",
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.communications.insert_one(comm_doc)
+        
+        # Log activity
+        await log_activity(
+            entity_type="camper",
+            entity_id=camper_id,
+            action="email_queued",
+            details={"type": "paid_in_full", "email_id": comm_doc["id"]},
+            performed_by=admin.get("id")
+        )
     
     return {"message": f"Status updated to {status}", "email_triggered": status in ["Accepted", "Paid in Full"]}
 
