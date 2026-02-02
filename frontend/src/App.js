@@ -13,7 +13,7 @@ import Kanban from "@/pages/Kanban";
 import Communications from "@/pages/Communications";
 import Rooms from "@/pages/Rooms";
 import Financial from "@/pages/Financial";
-import Exports from "@/pages/Exports";
+import DataCenter from "@/pages/DataCenter";
 import Settings from "@/pages/Settings";
 import ParentPortal from "@/pages/ParentPortal";
 import PaymentSuccess from "@/pages/PaymentSuccess";
@@ -65,7 +65,7 @@ function AppRoutes() {
         <Route path="communications" element={<Communications />} />
         <Route path="rooms" element={<Rooms />} />
         <Route path="financial" element={<Financial />} />
-        <Route path="exports" element={<Exports />} />
+        <Route path="data-center" element={<DataCenter />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
