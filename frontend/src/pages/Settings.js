@@ -152,7 +152,7 @@ const Settings = () => {
       }
       setShowAddTemplate(false);
       setEditingTemplate(null);
-      setNewTemplate({ name: '', subject: '', body: '', trigger: '', template_type: 'email' });
+      setNewTemplate({ name: '', subject: '', body: '', trigger: 'none', template_type: 'email' });
       fetchData();
     } catch (error) {
       toast.error('Failed to save template');
