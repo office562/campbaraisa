@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { 
   Plus, 
@@ -43,7 +44,105 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const GRADES = ['6th', '7th', '8th', '9th', '10th', '11th', '12th'];
+const GRADES = ['11th', '12th', '1st yr Bais Medrash', '2nd yr Bais Medrash'];
+
+const YESHIVAS = [
+  'Bais Yosef - Rabbi Nekritz',
+  'Mesivta Ahavas Hatorah - Lakewood - Rabbi Lazewnik',
+  'Mesivta Ahavas Hatorah - Monsey - Rabbi Klugman',
+  'Mesivta Beth Shraga - Monsey',
+  'Mesivta Darchei Noam - Lakewood - Rabbi Kranz',
+  'Mesivta Eitz Chaim - South Fallsburg',
+  'Mesivta Ga\'on Yaakov - Lakewood - Rabbi Chaim Cohen',
+  'Mesivta Keren Hatorah - Lakewood',
+  'Mesivta Keren Orah - Lakewood - Rabbi Blum',
+  'Mesivta Knesses Bais Levi - Lakewood - Rabbi Krupenia',
+  'Mesivta Mishnas Hatalmud - Rabbi Schwebel',
+  'Mesivta Nachlas Hatorah - Rabbi Grossman',
+  'Mesivta Nachlas Yisroel - Lakewood - Rabbi Ungarischer',
+  'Mesivta Naos Yakov - Rabbi S.F. Schustal',
+  'Mesivta Ner Moshe - Lakewood - Rabbi Sukenik',
+  'Mesivta Nezer Hatorah - Lakewood - Rabbi Brus',
+  'Mesivta Of Baltimore - Rabbi Shlanger',
+  'Mesivta Of Carteret - Rabbi Roth',
+  'Mesivta Of Greater Boston',
+  'Mesivta Of Lakewood - Rabbi Burstyn',
+  'Mesivta Of Long Beach',
+  'Mesivta Of North Jersey - Rabbi Eider',
+  'Mesivta Ohr Chaim Meir - Lakewood - Rabbi Friedman',
+  'Mesivta Ohr Naftali - New Windsor',
+  'Mesivta Ohr Yisroel - Lakewood - Rabbi Greenfeld',
+  'Mesivta Orchos Hatorah - Rabbi Beren',
+  'Mesivta Pe\'er Yisroel - R\' Katz',
+  'Mesivta Rabbi Tzvi Aryeh Zemel - Rabbi Rubin',
+  'Mesivta Reishis Chochma of Montreal',
+  'Mesivta Shalom Shachna - Brooklyn',
+  'Mesivta Tiferes Lipa - Lakewood',
+  'Mesivta Tiferes Shmuel - Lakewood - Rabbi Landau',
+  'Mesivta Torah Temima - Lakewood',
+  'Mesivta Toras Chaim - Lakewood - Rabbi Slomowitz',
+  'Mesivta Toras Maier - Passaic',
+  'Mesivta Zichron Baruch Of Clifton - Rabbi Halberstadt',
+  'Nachlei Torah - Lakewood',
+  'Ner Yisroel - Baltimore',
+  'Ner Yisroel - Toronto',
+  'Netzach Hatorah - R\' Fischer',
+  'Noam Hatalmud - Rabbi Kanarek',
+  'Ohr Hameir Seminary - Peekskill',
+  'Ohr Shraga Veretsky - Brooklyn',
+  'Rabbi Jacob Josef School - Edison',
+  'Talmudical Yeshiva Of Philadelphia',
+  'Telshe Yeshiva - Chicago',
+  'Telshe Yeshiva - Cleveland',
+  'Tiferes Boruch - Springfield',
+  'Torah Temimah - Brooklyn',
+  'Yeshiva & Mesivta Torah Temima - Brooklyn',
+  'Yeshiva Ateret Torah - Brooklyn',
+  'Yeshiva Bais Ahron - Lakewood - Rabbi Schulgasser',
+  'Yeshiva Bais Binyomin - Stamford',
+  'Yeshiva Bais Hachinuch - Lakewood - Rabbi Gray',
+  'Yeshiva Beth Moshe - Scranton',
+  'Yeshiva Birchas Chaim - Lakewood - Rabbi Stein',
+  'Yeshiva Chayei Olam - Lakewood - Rabbi Bromberg',
+  'Yeshiva Chemdas Hatorah - Lakewood - Rabbi Pruzansky',
+  'Yeshiva Gedola Of Bayonne',
+  'Yeshiva Gedola Of Dexter Park - Rabbi Rubin',
+  'Yeshiva Gedola Of LA',
+  'Yeshiva Gedola Of Monmouth - Rabbi Wasserman',
+  'Yeshiva Gedola of Montreal',
+  'Yeshiva Gedola Of Woodlake - Ohr Zecharia - Lakewood - Rabbi Uren Reich',
+  'Yeshiva Gedola Zichron Moshe - South Fallsburg',
+  'Yeshiva Mekor Hachaim - Lakewood - Rabbi Sherwinter',
+  'Yeshiva Meon Hatorah Of Roosevelt',
+  'Yeshiva Nefesh Hachaim - Lakewood - Rabbi Hirth',
+  'Yeshiva Of Telshe Alumni - Riverdale',
+  'Yeshiva Ohr Olam - Lakewood - Rabbi Berkowitz',
+  'Yeshiva Ohr Simcha',
+  'Yeshiva Ohr Yissochor - Lakewood - Rabbi Hackerman',
+  'Yeshiva Shaarei Chaim - Far Rockaway',
+  'Yeshiva Shaar Hatalmud - Lakewood - Rabbi Mintz',
+  'Yeshiva Sharei Orah - Lakewood - Rabbi Daniel Cohen',
+  'Yeshiva Toras Yisroel - Lakewood - Rabbi Stern & Rabbi Klein',
+  'Yeshiva V\'Yolepol - Brooklyn',
+  'Yeshiva Yisodei Hatorah - Lakewood - Rabbi Treff',
+  'Yeshiva Zecher Aryeh - Rabbi Smith',
+  'Yeshiva Zichron Shmaryahu - Toronto - Rabbi Brotsky',
+  'Yeshivas Chaim Berlin - Brooklyn',
+  'Yeshivas Emek Hatorah - Lakewood - Rabbi Weinberger',
+  'Yeshivas Lekach Torah - Lakewood - Rabbi Eichorn',
+  'Yeshivas Meor Hatalmud - Lakewood - Rabbi Witty',
+  'Yeshivas Mir - Brooklyn',
+  'Yeshivas Nachlas Tzvi - Toronto - Rabbi Kaplan',
+  'Yeshivas Novominsk - Kol Yehuda - Brooklyn',
+  'Yeshivas Shaar Hatorah - Queens',
+  'Yeshivas Tiferes Tzvi - Lakewood - Rabbi Pepper',
+  'Yeshivas Toras Moshe - Lakewood - Rabbi Berkowitz & Rabbi Pinter',
+  'Yeshivas Yearos Devash - Lakewood - Rabbi Brody',
+  'Yeshivat Ohel Torah',
+  'Yeshivat Sheerit Ezra - Lakewood',
+  'Yesodei Hatorah - Toronto',
+  'Other'
+];
 
 const statusColors = {
   'Applied': 'bg-blue-100 text-blue-800',
@@ -58,7 +157,7 @@ const statusColors = {
   'Paid in Full': 'bg-emerald-100 text-emerald-800',
 };
 
-const Campers = () => {
+function Campers() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [campers, setCampers] = useState([]);
@@ -72,17 +171,22 @@ const Campers = () => {
   const [showAddParent, setShowAddParent] = useState(false);
   const [showAddCamper, setShowAddCamper] = useState(false);
   const [newParent, setNewParent] = useState({
-    first_name: '', last_name: '', email: '', phone: '', address: '', city: '', state: '', zip_code: ''
+    email: '', father_first_name: '', father_last_name: '', father_cell: '',
+    mother_first_name: '', mother_last_name: '', mother_cell: ''
   });
   const [newCamper, setNewCamper] = useState({
-    first_name: '', last_name: '', hebrew_name: '', date_of_birth: '', grade: '', yeshiva: '', parent_id: ''
+    first_name: '', last_name: '', address: '', city: '', state: '', zip_code: '',
+    date_of_birth: '', yeshiva: '', yeshiva_other: '', grade: '', menahel: '',
+    rebbe_name: '', rebbe_phone: '', previous_yeshiva: '', camp_2024: '', camp_2023: '',
+    allergies: '', medical_info: '', emergency_contact_name: '', emergency_contact_phone: '',
+    emergency_contact_relationship: '', parent_id: ''
   });
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       const [campersRes, parentsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/campers`, { headers: { Authorization: `Bearer ${token}` }}),
-        axios.get(`${API_URL}/api/parents`, { headers: { Authorization: `Bearer ${token}` }})
+        axios.get(API_URL + '/api/campers', { headers: { Authorization: 'Bearer ' + token }}),
+        axios.get(API_URL + '/api/parents', { headers: { Authorization: 'Bearer ' + token }})
       ]);
       setCampers(campersRes.data);
       setParents(parentsRes.data);
@@ -91,52 +195,67 @@ const Campers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  useEffect(() => {
+  useEffect(function() {
     fetchData();
   }, [token]);
 
-  const handleAddParent = async (e) => {
+  async function handleAddParent(e) {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API_URL}/api/parents`, newParent, {
-        headers: { Authorization: `Bearer ${token}` }
+      const parentData = {
+        ...newParent,
+        first_name: newParent.father_first_name,
+        last_name: newParent.father_last_name,
+        phone: newParent.father_cell
+      };
+      const response = await axios.post(API_URL + '/api/parents', parentData, {
+        headers: { Authorization: 'Bearer ' + token }
       });
       setParents([...parents, response.data]);
       setShowAddParent(false);
-      setNewParent({ first_name: '', last_name: '', email: '', phone: '', address: '', city: '', state: '', zip_code: '' });
+      setNewParent({ email: '', father_first_name: '', father_last_name: '', father_cell: '',
+        mother_first_name: '', mother_last_name: '', mother_cell: '' });
       toast.success('Parent added successfully');
     } catch (error) {
       toast.error('Failed to add parent');
     }
-  };
+  }
 
-  const handleAddCamper = async (e) => {
+  async function handleAddCamper(e) {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API_URL}/api/campers`, newCamper, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.post(API_URL + '/api/campers', newCamper, {
+        headers: { Authorization: 'Bearer ' + token }
       });
       setCampers([...campers, response.data]);
       setShowAddCamper(false);
-      setNewCamper({ first_name: '', last_name: '', hebrew_name: '', date_of_birth: '', grade: '', yeshiva: '', parent_id: '' });
+      setNewCamper({
+        first_name: '', last_name: '', address: '', city: '', state: '', zip_code: '',
+        date_of_birth: '', yeshiva: '', yeshiva_other: '', grade: '', menahel: '',
+        rebbe_name: '', rebbe_phone: '', previous_yeshiva: '', camp_2024: '', camp_2023: '',
+        allergies: '', medical_info: '', emergency_contact_name: '', emergency_contact_phone: '',
+        emergency_contact_relationship: '', parent_id: ''
+      });
       toast.success('Camper added successfully');
     } catch (error) {
       toast.error('Failed to add camper');
     }
-  };
+  }
 
-  const getParentName = (parentId) => {
-    const parent = parents.find(p => p.id === parentId);
-    return parent ? `${parent.first_name} ${parent.last_name}` : 'Unknown';
-  };
+  function getParentName(parentId) {
+    const parent = parents.find(function(p) { return p.id === parentId; });
+    if (!parent) return 'Unknown';
+    const firstName = parent.father_first_name || parent.first_name || '';
+    const lastName = parent.father_last_name || parent.last_name || '';
+    return (firstName + ' ' + lastName).trim() || 'Unknown';
+  }
 
-  const filteredCampers = campers.filter(camper => {
+  const filteredCampers = campers.filter(function(camper) {
     const matchesSearch = 
       camper.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      camper.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (camper.hebrew_name && camper.hebrew_name.includes(searchTerm));
+      camper.last_name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesGrade = gradeFilter === 'all' || camper.grade === gradeFilter;
     const matchesStatus = statusFilter === 'all' || camper.status === statusFilter;
@@ -144,8 +263,16 @@ const Campers = () => {
     return matchesSearch && matchesGrade && matchesStatus;
   });
 
-  const grades = [...new Set(campers.map(c => c.grade).filter(Boolean))];
-  const yeshivas = [...new Set(campers.map(c => c.yeshiva).filter(Boolean))];
+  const grades = [];
+  const yeshivasUsed = [];
+  for (let i = 0; i < campers.length; i++) {
+    if (campers[i].grade && grades.indexOf(campers[i].grade) === -1) {
+      grades.push(campers[i].grade);
+    }
+    if (campers[i].yeshiva && yeshivasUsed.indexOf(campers[i].yeshiva) === -1) {
+      yeshivasUsed.push(campers[i].yeshiva);
+    }
+  }
 
   if (loading) {
     return (
@@ -181,73 +308,71 @@ const Campers = () => {
                 <DialogDescription>Enter parent/guardian information</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddParent} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>First Name</Label>
-                    <Input
-                      value={newParent.first_name}
-                      onChange={(e) => setNewParent({...newParent, first_name: e.target.value})}
-                      required
-                      data-testid="parent-first-name"
-                    />
-                  </div>
-                  <div>
-                    <Label>Last Name</Label>
-                    <Input
-                      value={newParent.last_name}
-                      onChange={(e) => setNewParent({...newParent, last_name: e.target.value})}
-                      required
-                      data-testid="parent-last-name"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={newParent.email}
-                      onChange={(e) => setNewParent({...newParent, email: e.target.value})}
-                      required
-                      data-testid="parent-email"
-                    />
-                  </div>
-                  <div>
-                    <Label>Phone</Label>
-                    <Input
-                      value={newParent.phone}
-                      onChange={(e) => setNewParent({...newParent, phone: e.target.value})}
-                      data-testid="parent-phone"
-                    />
-                  </div>
-                </div>
                 <div>
-                  <Label>Address</Label>
+                  <Label>Primary Email *</Label>
                   <Input
-                    value={newParent.address}
-                    onChange={(e) => setNewParent({...newParent, address: e.target.value})}
+                    type="email"
+                    value={newParent.email}
+                    onChange={function(e) { setNewParent({...newParent, email: e.target.value}); }}
+                    required
+                    data-testid="parent-email"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>City</Label>
+                <div className="border-t pt-4">
+                  <p className="font-medium mb-3">Father's Information</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>First Name *</Label>
+                      <Input
+                        value={newParent.father_first_name}
+                        onChange={function(e) { setNewParent({...newParent, father_first_name: e.target.value}); }}
+                        required
+                        data-testid="parent-father-first"
+                      />
+                    </div>
+                    <div>
+                      <Label>Last Name *</Label>
+                      <Input
+                        value={newParent.father_last_name}
+                        onChange={function(e) { setNewParent({...newParent, father_last_name: e.target.value}); }}
+                        required
+                        data-testid="parent-father-last"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label>Father's Cell *</Label>
                     <Input
-                      value={newParent.city}
-                      onChange={(e) => setNewParent({...newParent, city: e.target.value})}
+                      value={newParent.father_cell}
+                      onChange={function(e) { setNewParent({...newParent, father_cell: e.target.value}); }}
+                      required
+                      data-testid="parent-father-cell"
                     />
                   </div>
-                  <div>
-                    <Label>State</Label>
-                    <Input
-                      value={newParent.state}
-                      onChange={(e) => setNewParent({...newParent, state: e.target.value})}
-                    />
+                </div>
+                <div className="border-t pt-4">
+                  <p className="font-medium mb-3">Mother's Information</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>First Name</Label>
+                      <Input
+                        value={newParent.mother_first_name}
+                        onChange={function(e) { setNewParent({...newParent, mother_first_name: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Last Name</Label>
+                      <Input
+                        value={newParent.mother_last_name}
+                        onChange={function(e) { setNewParent({...newParent, mother_last_name: e.target.value}); }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label>ZIP</Label>
+                  <div className="mt-3">
+                    <Label>Mother's Cell</Label>
                     <Input
-                      value={newParent.zip_code}
-                      onChange={(e) => setNewParent({...newParent, zip_code: e.target.value})}
+                      value={newParent.mother_cell}
+                      onChange={function(e) { setNewParent({...newParent, mother_cell: e.target.value}); }}
                     />
                   </div>
                 </div>
@@ -267,97 +392,242 @@ const Campers = () => {
                 Add Camper
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-heading text-2xl">Add New Camper</DialogTitle>
                 <DialogDescription>Enter camper registration details</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddCamper} className="space-y-4">
+              <form onSubmit={handleAddCamper} className="space-y-6">
+                {/* Parent Selection */}
                 <div>
-                  <Label>Parent/Guardian</Label>
+                  <Label>Parent/Guardian *</Label>
                   <Select
                     value={newCamper.parent_id}
-                    onValueChange={(value) => setNewCamper({...newCamper, parent_id: value})}
+                    onValueChange={function(value) { setNewCamper({...newCamper, parent_id: value}); }}
                   >
                     <SelectTrigger data-testid="camper-parent-select">
                       <SelectValue placeholder="Select parent" />
                     </SelectTrigger>
                     <SelectContent>
-                      {parents.map(parent => (
-                        <SelectItem key={parent.id} value={parent.id}>
-                          {parent.first_name} {parent.last_name}
-                        </SelectItem>
-                      ))}
+                      {parents.map(function(parent) {
+                        return (
+                          <SelectItem key={parent.id} value={parent.id}>
+                            {getParentName(parent.id)} ({parent.email})
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>First Name</Label>
+
+                {/* Basic Info */}
+                <div className="border-t pt-4">
+                  <p className="font-medium mb-3">Camper Information</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>First Name *</Label>
+                      <Input
+                        value={newCamper.first_name}
+                        onChange={function(e) { setNewCamper({...newCamper, first_name: e.target.value}); }}
+                        required
+                        data-testid="camper-first-name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Last Name *</Label>
+                      <Input
+                        value={newCamper.last_name}
+                        onChange={function(e) { setNewCamper({...newCamper, last_name: e.target.value}); }}
+                        required
+                        data-testid="camper-last-name"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label>Address</Label>
                     <Input
-                      value={newCamper.first_name}
-                      onChange={(e) => setNewCamper({...newCamper, first_name: e.target.value})}
-                      required
-                      data-testid="camper-first-name"
+                      value={newCamper.address}
+                      onChange={function(e) { setNewCamper({...newCamper, address: e.target.value}); }}
+                      placeholder="Street Address"
                     />
                   </div>
-                  <div>
-                    <Label>Last Name</Label>
-                    <Input
-                      value={newCamper.last_name}
-                      onChange={(e) => setNewCamper({...newCamper, last_name: e.target.value})}
-                      required
-                      data-testid="camper-last-name"
-                    />
+                  <div className="grid grid-cols-3 gap-4 mt-3">
+                    <div>
+                      <Label>City</Label>
+                      <Input
+                        value={newCamper.city}
+                        onChange={function(e) { setNewCamper({...newCamper, city: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>State</Label>
+                      <Input
+                        value={newCamper.state}
+                        onChange={function(e) { setNewCamper({...newCamper, state: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Zip Code</Label>
+                      <Input
+                        value={newCamper.zip_code}
+                        onChange={function(e) { setNewCamper({...newCamper, zip_code: e.target.value}); }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Hebrew Name</Label>
-                    <Input
-                      value={newCamper.hebrew_name}
-                      onChange={(e) => setNewCamper({...newCamper, hebrew_name: e.target.value})}
-                      className="font-hebrew"
-                      placeholder="שם עברי"
-                      data-testid="camper-hebrew-name"
-                    />
-                  </div>
-                  <div>
-                    <Label>Date of Birth</Label>
+                  <div className="mt-3">
+                    <Label>Birthdate</Label>
                     <Input
                       type="date"
                       value={newCamper.date_of_birth}
-                      onChange={(e) => setNewCamper({...newCamper, date_of_birth: e.target.value})}
+                      onChange={function(e) { setNewCamper({...newCamper, date_of_birth: e.target.value}); }}
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Grade</Label>
-                    <Select
-                      value={newCamper.grade}
-                      onValueChange={(value) => setNewCamper({...newCamper, grade: value})}
-                    >
-                      <SelectTrigger data-testid="camper-grade-select">
-                        <SelectValue placeholder="Select grade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GRADES.map(grade => (
-                          <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                {/* Yeshiva Info */}
+                <div className="border-t pt-4">
+                  <p className="font-medium mb-3">Yeshiva Information</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Yeshiva *</Label>
+                      <Select
+                        value={newCamper.yeshiva}
+                        onValueChange={function(value) { setNewCamper({...newCamper, yeshiva: value}); }}
+                      >
+                        <SelectTrigger data-testid="camper-yeshiva-select">
+                          <SelectValue placeholder="Select yeshiva" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {YESHIVAS.map(function(yeshiva) {
+                            return <SelectItem key={yeshiva} value={yeshiva}>{yeshiva}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Current Grade *</Label>
+                      <Select
+                        value={newCamper.grade}
+                        onValueChange={function(value) { setNewCamper({...newCamper, grade: value}); }}
+                      >
+                        <SelectTrigger data-testid="camper-grade-select">
+                          <SelectValue placeholder="Select grade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GRADES.map(function(grade) {
+                            return <SelectItem key={grade} value={grade}>{grade}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div>
-                    <Label>Yeshiva</Label>
+                  {newCamper.yeshiva === 'Other' && (
+                    <div className="mt-3">
+                      <Label>Name of Yeshiva (if Other)</Label>
+                      <Input
+                        value={newCamper.yeshiva_other}
+                        onChange={function(e) { setNewCamper({...newCamper, yeshiva_other: e.target.value}); }}
+                        placeholder="Enter yeshiva name"
+                      />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <Label>Menahel</Label>
+                      <Input
+                        value={newCamper.menahel}
+                        onChange={function(e) { setNewCamper({...newCamper, menahel: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Rebbe Name</Label>
+                      <Input
+                        value={newCamper.rebbe_name}
+                        onChange={function(e) { setNewCamper({...newCamper, rebbe_name: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <Label>Rebbe's Phone</Label>
+                      <Input
+                        value={newCamper.rebbe_phone}
+                        onChange={function(e) { setNewCamper({...newCamper, rebbe_phone: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Previous Yeshiva</Label>
+                      <Input
+                        value={newCamper.previous_yeshiva}
+                        onChange={function(e) { setNewCamper({...newCamper, previous_yeshiva: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Camp History */}
+                <div className="border-t pt-4">
+                  <p className="font-medium mb-3">Camp History</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Camp Attended Summer 2024</Label>
+                      <Input
+                        value={newCamper.camp_2024}
+                        onChange={function(e) { setNewCamper({...newCamper, camp_2024: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Camp Attended Summer 2023</Label>
+                      <Input
+                        value={newCamper.camp_2023}
+                        onChange={function(e) { setNewCamper({...newCamper, camp_2023: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
+                <div className="border-t pt-4">
+                  <p className="font-medium mb-3">Emergency Contact</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={newCamper.emergency_contact_name}
+                        onChange={function(e) { setNewCamper({...newCamper, emergency_contact_name: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input
+                        value={newCamper.emergency_contact_phone}
+                        onChange={function(e) { setNewCamper({...newCamper, emergency_contact_phone: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label>Relationship to Camper</Label>
                     <Input
-                      value={newCamper.yeshiva}
-                      onChange={(e) => setNewCamper({...newCamper, yeshiva: e.target.value})}
-                      placeholder="Yeshiva name"
-                      data-testid="camper-yeshiva"
+                      value={newCamper.emergency_contact_relationship}
+                      onChange={function(e) { setNewCamper({...newCamper, emergency_contact_relationship: e.target.value}); }}
                     />
                   </div>
                 </div>
+
+                {/* Medical Info */}
+                <div className="border-t pt-4">
+                  <p className="font-medium mb-3">Medical Information</p>
+                  <div>
+                    <Label>Allergy/Medical Information</Label>
+                    <Textarea
+                      value={newCamper.medical_info}
+                      onChange={function(e) { setNewCamper({...newCamper, medical_info: e.target.value}); }}
+                      placeholder="List any allergies or medical conditions..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
                 <DialogFooter>
                   <Button type="submit" className="btn-camp-primary" disabled={!newCamper.parent_id} data-testid="save-camper-btn">
                     Save Camper
@@ -378,21 +648,21 @@ const Campers = () => {
               <Input
                 placeholder="Search by name..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={function(e) { setSearchTerm(e.target.value); }}
                 className="pl-10"
                 data-testid="camper-search"
               />
             </div>
             <Select value={gradeFilter} onValueChange={setGradeFilter}>
-              <SelectTrigger className="w-[150px]" data-testid="grade-filter">
+              <SelectTrigger className="w-[180px]" data-testid="grade-filter">
                 <GraduationCap className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Grade" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Grades</SelectItem>
-                {GRADES.map(grade => (
-                  <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                ))}
+                {GRADES.map(function(grade) {
+                  return <SelectItem key={grade} value={grade}>{grade}</SelectItem>;
+                })}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -402,9 +672,9 @@ const Campers = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                {Object.keys(statusColors).map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                ))}
+                {Object.keys(statusColors).map(function(status) {
+                  return <SelectItem key={status} value={status}>{status}</SelectItem>;
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -418,7 +688,6 @@ const Campers = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Hebrew Name</TableHead>
                 <TableHead>Grade</TableHead>
                 <TableHead>Yeshiva</TableHead>
                 <TableHead>Parent</TableHead>
@@ -428,37 +697,36 @@ const Campers = () => {
             </TableHeader>
             <TableBody>
               {filteredCampers.length > 0 ? (
-                filteredCampers.map((camper) => (
-                  <TableRow key={camper.id} className="cursor-pointer hover:bg-gray-50">
-                    <TableCell className="font-medium">
-                      {camper.first_name} {camper.last_name}
-                    </TableCell>
-                    <TableCell className="font-hebrew">
-                      {camper.hebrew_name || '-'}
-                    </TableCell>
-                    <TableCell>{camper.grade || '-'}</TableCell>
-                    <TableCell>{camper.yeshiva || '-'}</TableCell>
-                    <TableCell>{getParentName(camper.parent_id)}</TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[camper.status] || 'bg-gray-100 text-gray-800'}>
-                        {camper.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/campers/${camper.id}`)}
-                        data-testid={`view-camper-${camper.id}`}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredCampers.map(function(camper) {
+                  return (
+                    <TableRow key={camper.id} className="cursor-pointer hover:bg-gray-50">
+                      <TableCell className="font-medium">
+                        {camper.first_name} {camper.last_name}
+                      </TableCell>
+                      <TableCell>{camper.grade || '-'}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{camper.yeshiva || '-'}</TableCell>
+                      <TableCell>{getParentName(camper.parent_id)}</TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[camper.status] || 'bg-gray-100 text-gray-800'}>
+                          {camper.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={function() { navigate('/campers/' + camper.id); }}
+                          data-testid={'view-camper-' + camper.id}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     No campers found
                   </TableCell>
                 </TableRow>
@@ -479,7 +747,7 @@ const Campers = () => {
           <p className="text-sm text-muted-foreground">Grades Represented</p>
         </div>
         <div className="bg-white rounded-lg p-4 border">
-          <p className="text-2xl font-bold text-[#F4A261]">{yeshivas.length}</p>
+          <p className="text-2xl font-bold text-[#F4A261]">{yeshivasUsed.length}</p>
           <p className="text-sm text-muted-foreground">Yeshivas</p>
         </div>
         <div className="bg-white rounded-lg p-4 border">
@@ -489,6 +757,6 @@ const Campers = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Campers;
