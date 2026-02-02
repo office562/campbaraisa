@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, 
@@ -23,10 +24,11 @@ import {
   Phone, 
   Mail,
   MapPin,
-  Calendar,
   GraduationCap,
   Building,
-  FileText
+  FileText,
+  AlertCircle,
+  Tent
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -44,9 +46,9 @@ const KANBAN_STATUSES = [
   "Paid in Full"
 ];
 
-const GRADES = ['6th', '7th', '8th', '9th', '10th', '11th', '12th'];
+const GRADES = ['11th', '12th', '1st yr Bais Medrash', '2nd yr Bais Medrash'];
 
-const CamperDetail = () => {
+function CamperDetail() {
   const { camperId } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -55,16 +57,16 @@ const CamperDetail = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  useEffect(function() {
+    async function fetchData() {
       try {
-        const camperRes = await axios.get(`${API_URL}/api/campers/${camperId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const camperRes = await axios.get(API_URL + '/api/campers/' + camperId, {
+          headers: { Authorization: 'Bearer ' + token }
         });
         setCamper(camperRes.data);
 
-        const parentRes = await axios.get(`${API_URL}/api/parents/${camperRes.data.parent_id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const parentRes = await axios.get(API_URL + '/api/parents/' + camperRes.data.parent_id, {
+          headers: { Authorization: 'Bearer ' + token }
         });
         setParent(parentRes.data);
       } catch (error) {
@@ -73,26 +75,15 @@ const CamperDetail = () => {
       } finally {
         setLoading(false);
       }
-    };
-
+    }
     fetchData();
   }, [camperId, token, navigate]);
 
-  const handleSave = async () => {
+  async function handleSave() {
     setSaving(true);
     try {
-      await axios.put(`${API_URL}/api/campers/${camperId}`, {
-        first_name: camper.first_name,
-        last_name: camper.last_name,
-        hebrew_name: camper.hebrew_name,
-        date_of_birth: camper.date_of_birth,
-        grade: camper.grade,
-        yeshiva: camper.yeshiva,
-        allergies: camper.allergies,
-        medical_notes: camper.medical_notes,
-        notes: camper.notes
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.put(API_URL + '/api/campers/' + camperId, camper, {
+        headers: { Authorization: 'Bearer ' + token }
       });
       toast.success('Camper updated successfully');
     } catch (error) {
@@ -100,15 +91,15 @@ const CamperDetail = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  const handleStatusChange = async (newStatus) => {
+  async function handleStatusChange(newStatus) {
     try {
-      await axios.put(`${API_URL}/api/campers/${camperId}/status?status=${encodeURIComponent(newStatus)}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.put(API_URL + '/api/campers/' + camperId + '/status?status=' + encodeURIComponent(newStatus), {}, {
+        headers: { Authorization: 'Bearer ' + token }
       });
       setCamper({ ...camper, status: newStatus });
-      toast.success(`Status updated to ${newStatus}`);
+      toast.success('Status updated to ' + newStatus);
       
       if (newStatus === 'Accepted' || newStatus === 'Paid in Full') {
         toast.info('Automated email has been queued');
@@ -116,7 +107,7 @@ const CamperDetail = () => {
     } catch (error) {
       toast.error('Failed to update status');
     }
-  };
+  }
 
   if (loading) {
     return (
@@ -141,13 +132,20 @@ const CamperDetail = () => {
     'Paid in Full': 'bg-emerald-500',
   };
 
+  function getParentDisplayName() {
+    if (!parent) return '';
+    const firstName = parent.father_first_name || parent.first_name || '';
+    const lastName = parent.father_last_name || parent.last_name || '';
+    return (firstName + ' ' + lastName).trim();
+  }
+
   return (
     <div data-testid="camper-detail-page">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Button
           variant="ghost"
-          onClick={() => navigate('/campers')}
+          onClick={function() { navigate('/campers'); }}
           data-testid="back-btn"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -157,9 +155,7 @@ const CamperDetail = () => {
           <h1 className="font-heading text-4xl font-bold text-[#2D241E] tracking-tight">
             {camper.first_name} {camper.last_name}
           </h1>
-          {camper.hebrew_name && (
-            <p className="text-lg text-muted-foreground font-hebrew">{camper.hebrew_name}</p>
-          )}
+          <p className="text-muted-foreground">{camper.yeshiva || 'No yeshiva'} • {camper.grade || 'No grade'}</p>
         </div>
         <Button
           onClick={handleSave}
@@ -173,26 +169,24 @@ const CamperDetail = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Info */}
+        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Status Card */}
           <Card className="card-camp">
             <CardHeader>
-              <CardTitle className="font-heading text-xl flex items-center gap-2">
-                Enrollment Status
-              </CardTitle>
+              <CardTitle className="font-heading text-xl">Enrollment Status</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
-                <div className={`w-3 h-3 rounded-full ${statusColors[camper.status]}`} />
+                <div className={'w-3 h-3 rounded-full ' + (statusColors[camper.status] || 'bg-gray-500')} />
                 <Select value={camper.status} onValueChange={handleStatusChange}>
                   <SelectTrigger className="w-[250px]" data-testid="status-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {KANBAN_STATUSES.map(status => (
-                      <SelectItem key={status} value={status}>{status}</SelectItem>
-                    ))}
+                    {KANBAN_STATUSES.map(function(status) {
+                      return <SelectItem key={status} value={status}>{status}</SelectItem>;
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -204,127 +198,245 @@ const CamperDetail = () => {
             </CardContent>
           </Card>
 
-          {/* Camper Details */}
-          <Card className="card-camp">
-            <CardHeader>
-              <CardTitle className="font-heading text-xl flex items-center gap-2">
-                <User className="w-5 h-5 text-[#E85D04]" />
-                Camper Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>First Name</Label>
-                  <Input
-                    value={camper.first_name}
-                    onChange={(e) => setCamper({...camper, first_name: e.target.value})}
-                    data-testid="camper-first-name"
-                  />
-                </div>
-                <div>
-                  <Label>Last Name</Label>
-                  <Input
-                    value={camper.last_name}
-                    onChange={(e) => setCamper({...camper, last_name: e.target.value})}
-                    data-testid="camper-last-name"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Hebrew Name</Label>
-                  <Input
-                    value={camper.hebrew_name || ''}
-                    onChange={(e) => setCamper({...camper, hebrew_name: e.target.value})}
-                    className="font-hebrew"
-                    placeholder="שם עברי"
-                    data-testid="camper-hebrew-name"
-                  />
-                </div>
-                <div>
-                  <Label>Date of Birth</Label>
-                  <Input
-                    type="date"
-                    value={camper.date_of_birth || ''}
-                    onChange={(e) => setCamper({...camper, date_of_birth: e.target.value})}
-                    data-testid="camper-dob"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4" />
-                    Grade
-                  </Label>
-                  <Select
-                    value={camper.grade || ''}
-                    onValueChange={(value) => setCamper({...camper, grade: value})}
-                  >
-                    <SelectTrigger data-testid="camper-grade">
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {GRADES.map(grade => (
-                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Building className="w-4 h-4" />
-                    Yeshiva
-                  </Label>
-                  <Input
-                    value={camper.yeshiva || ''}
-                    onChange={(e) => setCamper({...camper, yeshiva: e.target.value})}
-                    data-testid="camper-yeshiva"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Tabbed Content */}
+          <Tabs defaultValue="basic" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="yeshiva">Yeshiva</TabsTrigger>
+              <TabsTrigger value="emergency">Emergency</TabsTrigger>
+              <TabsTrigger value="medical">Medical</TabsTrigger>
+            </TabsList>
 
-          {/* Medical Info */}
-          <Card className="card-camp">
-            <CardHeader>
-              <CardTitle className="font-heading text-xl flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#E85D04]" />
-                Medical & Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Allergies</Label>
-                <Textarea
-                  value={camper.allergies || ''}
-                  onChange={(e) => setCamper({...camper, allergies: e.target.value})}
-                  placeholder="List any allergies..."
-                  data-testid="camper-allergies"
-                />
-              </div>
-              <div>
-                <Label>Medical Notes</Label>
-                <Textarea
-                  value={camper.medical_notes || ''}
-                  onChange={(e) => setCamper({...camper, medical_notes: e.target.value})}
-                  placeholder="Any medical conditions or requirements..."
-                  data-testid="camper-medical"
-                />
-              </div>
-              <div>
-                <Label>General Notes</Label>
-                <Textarea
-                  value={camper.notes || ''}
-                  onChange={(e) => setCamper({...camper, notes: e.target.value})}
-                  placeholder="Additional notes..."
-                  data-testid="camper-notes"
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <TabsContent value="basic">
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <User className="w-5 h-5 text-[#E85D04]" />
+                    Camper Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>First Name</Label>
+                      <Input
+                        value={camper.first_name || ''}
+                        onChange={function(e) { setCamper({...camper, first_name: e.target.value}); }}
+                        data-testid="camper-first-name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Last Name</Label>
+                      <Input
+                        value={camper.last_name || ''}
+                        onChange={function(e) { setCamper({...camper, last_name: e.target.value}); }}
+                        data-testid="camper-last-name"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Address</Label>
+                    <Input
+                      value={camper.address || ''}
+                      onChange={function(e) { setCamper({...camper, address: e.target.value}); }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>City</Label>
+                      <Input
+                        value={camper.city || ''}
+                        onChange={function(e) { setCamper({...camper, city: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>State</Label>
+                      <Input
+                        value={camper.state || ''}
+                        onChange={function(e) { setCamper({...camper, state: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Zip Code</Label>
+                      <Input
+                        value={camper.zip_code || ''}
+                        onChange={function(e) { setCamper({...camper, zip_code: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Date of Birth</Label>
+                    <Input
+                      type="date"
+                      value={camper.date_of_birth || ''}
+                      onChange={function(e) { setCamper({...camper, date_of_birth: e.target.value}); }}
+                    />
+                  </div>
+
+                  {/* Camp History */}
+                  <div className="border-t pt-4 mt-4">
+                    <p className="font-medium mb-3 flex items-center gap-2">
+                      <Tent className="w-4 h-4 text-[#E85D04]" />
+                      Camp History
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Camp Summer 2024</Label>
+                        <Input
+                          value={camper.camp_2024 || ''}
+                          onChange={function(e) { setCamper({...camper, camp_2024: e.target.value}); }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Camp Summer 2023</Label>
+                        <Input
+                          value={camper.camp_2023 || ''}
+                          onChange={function(e) { setCamper({...camper, camp_2023: e.target.value}); }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="yeshiva">
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5 text-[#E85D04]" />
+                    Yeshiva Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Yeshiva</Label>
+                      <Input
+                        value={camper.yeshiva || ''}
+                        onChange={function(e) { setCamper({...camper, yeshiva: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Grade</Label>
+                      <Select 
+                        value={camper.grade || ''} 
+                        onValueChange={function(value) { setCamper({...camper, grade: value}); }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select grade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GRADES.map(function(grade) {
+                            return <SelectItem key={grade} value={grade}>{grade}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Menahel</Label>
+                      <Input
+                        value={camper.menahel || ''}
+                        onChange={function(e) { setCamper({...camper, menahel: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Rebbe Name</Label>
+                      <Input
+                        value={camper.rebbe_name || ''}
+                        onChange={function(e) { setCamper({...camper, rebbe_name: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Rebbe's Phone</Label>
+                      <Input
+                        value={camper.rebbe_phone || ''}
+                        onChange={function(e) { setCamper({...camper, rebbe_phone: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Previous Yeshiva</Label>
+                      <Input
+                        value={camper.previous_yeshiva || ''}
+                        onChange={function(e) { setCamper({...camper, previous_yeshiva: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="emergency">
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-[#E85D04]" />
+                    Emergency Contact
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Contact Name</Label>
+                      <Input
+                        value={camper.emergency_contact_name || ''}
+                        onChange={function(e) { setCamper({...camper, emergency_contact_name: e.target.value}); }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Phone Number</Label>
+                      <Input
+                        value={camper.emergency_contact_phone || ''}
+                        onChange={function(e) { setCamper({...camper, emergency_contact_phone: e.target.value}); }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Relationship to Camper</Label>
+                    <Input
+                      value={camper.emergency_contact_relationship || ''}
+                      onChange={function(e) { setCamper({...camper, emergency_contact_relationship: e.target.value}); }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="medical">
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-[#E85D04]" />
+                    Medical Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Allergies / Medical Information</Label>
+                    <Textarea
+                      value={camper.medical_info || camper.allergies || ''}
+                      onChange={function(e) { setCamper({...camper, medical_info: e.target.value}); }}
+                      placeholder="List any allergies or medical conditions..."
+                      rows={4}
+                    />
+                  </div>
+                  <div>
+                    <Label>Additional Notes</Label>
+                    <Textarea
+                      value={camper.notes || ''}
+                      onChange={function(e) { setCamper({...camper, notes: e.target.value}); }}
+                      placeholder="Any additional notes..."
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Sidebar */}
@@ -335,40 +447,47 @@ const CamperDetail = () => {
               <CardHeader>
                 <CardTitle className="font-heading text-xl">Parent/Guardian</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#E85D04]/10 flex items-center justify-center">
-                    <User className="w-6 h-6 text-[#E85D04]" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{parent.first_name} {parent.last_name}</p>
-                    <p className="text-sm text-muted-foreground">Parent</p>
-                  </div>
-                </div>
-                <div className="border-t pt-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <a href={`mailto:${parent.email}`} className="text-[#E85D04] hover:underline">
-                      {parent.email}
-                    </a>
-                  </div>
-                  {parent.phone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <a href={`tel:${parent.phone}`} className="hover:underline">
-                        {parent.phone}
+              <CardContent className="space-y-4">
+                {/* Father */}
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Father</p>
+                  <p className="font-medium">
+                    {parent.father_first_name || parent.first_name} {parent.father_last_name || parent.last_name}
+                  </p>
+                  {(parent.father_cell || parent.phone) && (
+                    <div className="flex items-center gap-2 text-sm mt-1">
+                      <Phone className="w-3 h-3 text-muted-foreground" />
+                      <a href={'tel:' + (parent.father_cell || parent.phone)} className="hover:underline">
+                        {parent.father_cell || parent.phone}
                       </a>
                     </div>
                   )}
-                  {parent.address && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                      <span>
-                        {parent.address}<br />
-                        {parent.city}, {parent.state} {parent.zip_code}
-                      </span>
-                    </div>
-                  )}
+                </div>
+
+                {/* Mother */}
+                {parent.mother_first_name && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Mother</p>
+                    <p className="font-medium">
+                      {parent.mother_first_name} {parent.mother_last_name}
+                    </p>
+                    {parent.mother_cell && (
+                      <div className="flex items-center gap-2 text-sm mt-1">
+                        <Phone className="w-3 h-3 text-muted-foreground" />
+                        <a href={'tel:' + parent.mother_cell} className="hover:underline">
+                          {parent.mother_cell}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Email */}
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <a href={'mailto:' + parent.email} className="text-[#E85D04] hover:underline">
+                    {parent.email}
+                  </a>
                 </div>
               </CardContent>
             </Card>
@@ -384,11 +503,11 @@ const CamperDetail = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total Balance</span>
-                    <span className="font-bold">${parent.total_balance?.toLocaleString() || 0}</span>
+                    <span className="font-bold">${(parent.total_balance || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total Paid</span>
-                    <span className="font-bold text-[#2A9D8F]">${parent.total_paid?.toLocaleString() || 0}</span>
+                    <span className="font-bold text-[#2A9D8F]">${(parent.total_paid || 0).toLocaleString()}</span>
                   </div>
                   <div className="border-t pt-3 flex justify-between">
                     <span className="text-muted-foreground">Outstanding</span>
@@ -400,7 +519,7 @@ const CamperDetail = () => {
                 <Button
                   variant="outline"
                   className="w-full mt-4"
-                  onClick={() => navigate('/billing')}
+                  onClick={function() { navigate('/billing'); }}
                   data-testid="view-billing-btn"
                 >
                   View Full Billing
@@ -421,8 +540,8 @@ const CamperDetail = () => {
                   variant="outline"
                   size="sm"
                   className="w-full mt-3"
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/portal/${parent.access_token}`);
+                  onClick={function() {
+                    navigator.clipboard.writeText(window.location.origin + '/portal/' + parent.access_token);
                     toast.success('Link copied to clipboard');
                   }}
                   data-testid="copy-portal-link"
@@ -436,6 +555,6 @@ const CamperDetail = () => {
       </div>
     </div>
   );
-};
+}
 
 export default CamperDetail;
