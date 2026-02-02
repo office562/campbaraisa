@@ -53,7 +53,7 @@ const Sidebar = ({ onClose }) => {
           />
           <div>
             <h1 className="font-heading text-xl font-bold tracking-tight">CAMP BARAISA</h1>
-            <p className="text-xs text-white/60 font-hebrew">מחנה ברייסא</p>
+            <p className="text-xs text-white/60">Utah Summer Camp</p>
           </div>
         </div>
       </div>
