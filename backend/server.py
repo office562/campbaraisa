@@ -1255,20 +1255,25 @@ async def create_communication(data: CommunicationCreate, admin=Depends(get_curr
 
 @api_router.get("/communications", response_model=List[CommunicationResponse])
 async def get_communications(
-    parent_id: Optional[str] = None,
+    camper_id: Optional[str] = None,
     type: Optional[str] = None,
     admin=Depends(get_current_admin)
 ):
     query = {}
-    if parent_id:
-        query["parent_id"] = parent_id
+    if camper_id:
+        query["camper_id"] = camper_id
     if type:
         query["type"] = type
     
     comms = await db.communications.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    result = []
     for c in comms:
         c["created_at"] = datetime.fromisoformat(c["created_at"])
-    return [CommunicationResponse(**c) for c in comms]
+        # Handle both old parent_id and new camper_id for backwards compat
+        if "parent_id" in c and "camper_id" not in c:
+            c["camper_id"] = c.get("parent_id", "")
+        result.append(CommunicationResponse(**c))
+    return result
 
 @api_router.put("/communications/{comm_id}/status")
 async def update_communication_status(comm_id: str, status: str, admin=Depends(get_current_admin)):
