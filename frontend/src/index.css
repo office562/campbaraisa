@@ -1,75 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=Heebo:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --camp-orange: #E85D04;
+    --camp-orange-hover: #D65200;
+    --camp-orange-light: #FFF0E6;
+    --camp-dark: #2D241E;
+    --camp-dark-hover: #1F1915;
+    --camp-bone: #F8F5F2;
+    --camp-accent: #F4A261;
+    --camp-success: #2A9D8F;
+    --camp-warning: #E9C46A;
+    --camp-error: #E76F51;
+    --camp-info: #264653;
+}
+
 body {
     margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: var(--camp-bone);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+.font-heading {
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+.font-hebrew {
+    font-family: 'Heebo', 'IBM Plex Sans', sans-serif;
 }
 
 code {
-    font-family:
-        source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
+        --background: 30 20% 97%;
+        --foreground: 20 20% 10%;
         --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
+        --card-foreground: 20 20% 10%;
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
+        --popover-foreground: 20 20% 10%;
+        --primary: 22 95% 46%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 20 25% 15%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 0 0% 90%;
+        --muted-foreground: 0 0% 45%;
+        --accent: 29 88% 67%;
+        --accent-foreground: 20 20% 10%;
+        --destructive: 16 72% 61%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 0 0% 85%;
+        --input: 0 0% 85%;
+        --ring: 22 95% 46%;
+        --chart-1: 22 95% 46%;
+        --chart-2: 168 50% 40%;
+        --chart-3: 29 88% 67%;
+        --chart-4: 45 75% 66%;
+        --chart-5: 16 72% 61%;
         --radius: 0.5rem;
-    }
-    .dark {
-        --background: 0 0% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 0 0% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 0 0% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 0 0% 9%;
-        --secondary: 0 0% 14.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 0 0% 14.9%;
-        --muted-foreground: 0 0% 63.9%;
-        --accent: 0 0% 14.9%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 14.9%;
-        --input: 0 0% 14.9%;
-        --ring: 0 0% 83.1%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
     }
 }
 
@@ -79,6 +78,75 @@ code {
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer components {
+    .btn-camp-primary {
+        @apply bg-[#E85D04] hover:bg-[#D65200] text-white font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all active:scale-95 rounded-md px-4 py-2;
+    }
+    
+    .btn-camp-secondary {
+        @apply bg-[#2D241E] hover:bg-[#1F1915] text-white font-medium rounded-md px-4 py-2 transition-all;
+    }
+    
+    .btn-camp-outline {
+        @apply border-2 border-[#E85D04] text-[#E85D04] hover:bg-[#E85D04] hover:text-white font-bold uppercase rounded-md px-4 py-2 transition-all;
+    }
+    
+    .card-camp {
+        @apply bg-white border border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200 rounded-xl;
+    }
+    
+    .input-camp {
+        @apply bg-white border-input focus:border-[#E85D04] focus:ring-[#E85D04] rounded-md;
+    }
+    
+    .sidebar-link {
+        @apply flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors;
+    }
+    
+    .sidebar-link-active {
+        @apply bg-[#E85D04] text-white;
+    }
+    
+    .stat-card {
+        @apply bg-white rounded-xl p-6 shadow-sm border border-border/40;
+    }
+    
+    .kanban-column {
+        @apply bg-gray-50 rounded-xl p-4 min-w-[280px] max-w-[280px];
+    }
+    
+    .kanban-card {
+        @apply bg-white rounded-lg p-4 shadow-sm border border-border/40 hover:shadow-md hover:border-[#E85D04]/30 transition-all cursor-pointer;
+    }
+}
+
+@layer utilities {
+    .text-camp-orange {
+        color: var(--camp-orange);
+    }
+    
+    .bg-camp-orange {
+        background-color: var(--camp-orange);
+    }
+    
+    .bg-camp-dark {
+        background-color: var(--camp-dark);
+    }
+    
+    .bg-camp-bone {
+        background-color: var(--camp-bone);
+    }
+    
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
     }
 }
 
