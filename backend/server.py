@@ -209,6 +209,38 @@ class RoomResponse(RoomBase):
     id: str
     assigned_campers: List[str] = []
 
+# Groups Model (for shiurim, trips, transportation, etc.)
+class GroupBase(BaseModel):
+    name: str
+    type: str  # shiur, transportation, trip, room, custom
+    capacity: Optional[int] = None
+    description: Optional[str] = None
+
+class GroupCreate(GroupBase):
+    pass
+
+class GroupResponse(GroupBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    assigned_campers: List[str] = []
+    created_at: Optional[datetime] = None
+
+# Activity Log Model
+class ActivityLogBase(BaseModel):
+    entity_type: str  # camper, parent, invoice
+    entity_id: str
+    action: str  # status_changed, note_added, email_sent, etc.
+    details: Optional[Dict[str, Any]] = None
+    performed_by: Optional[str] = None  # admin id
+
+class ActivityLogCreate(ActivityLogBase):
+    pass
+
+class ActivityLogResponse(ActivityLogBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    created_at: datetime
+
 class ExpenseBase(BaseModel):
     category: str
     amount: float
