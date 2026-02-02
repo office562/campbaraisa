@@ -215,7 +215,7 @@ const Settings = () => {
       name: template.name,
       subject: template.subject,
       body: template.body,
-      trigger: template.trigger || '',
+      trigger: template.trigger || 'none',
       template_type: template.template_type || 'email'
     });
     setShowAddTemplate(true);
