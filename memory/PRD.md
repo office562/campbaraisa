@@ -1,217 +1,109 @@
-# Camp Baraisa Management System - PRD
+# Camp Baraisa - Product Requirements Document
 
-## Overview
-A comprehensive camp management system for Camp Baraisa - a Bein Hazmanim (Jewish holiday camp) experience. The system replaces traditional Jotform-based registration with an integrated admin dashboard and parent portal.
+## Original Problem Statement
+Build a comprehensive camp management system for Camp Baraisa, enabling admins to manage camper registrations, billing, communications, and track enrollment status through a Kanban-style workflow.
 
-## Branding
-- **Name**: Camp Baraisa
-- **Tagline**: "The Ultimate Bein Hazmanim Experience - For the serious Ben Torah."
-- **Primary Color**: Orange (#E85D04)
-- **Contact**:
-  - Phone: 848.BAR.AISA (227-2472)
-  - Email: office@campbaraisa.com
-  - Address: 665 Princeton Ave Apt. 206, Lakewood, NJ 08701
+## Core Requirements (Consolidated)
 
----
+### 1. Unified Camper Management ✅ COMPLETED
+- Combined Parent and Camper data into a single "Camper" record
+- Camper record contains all information: personal details, parent/guardian details, contact info, yeshiva, camp history, medical info, photo
+- All UI elements (Data Center, Kanban, detail pages) reflect this unified model
 
-## Completed Features (Feb 2026)
+### 2. Admin Dashboard ✅ COMPLETED
+- **Global Search:** Search bar to find any camper by name, yeshiva, grade, parent info
+- **Data Center:** Custom reports with field visibility toggling, category-based filtering, CSV export
+- **Kanban Board:** Large clickable tiles with photo, due dates, parent contact, status updates
+- **Rooms & Groups:** Split into two separate tabs for physical rooms and custom groups
 
-### ✅ Admin Dashboard
-- **Authentication**: JWT-based login/register with admin approval system
-- **Dashboard Overview**: Stats for campers, invoiced amounts, collections, outstanding
-- **Sidebar Navigation**: Overview, Campers, Billing, Kanban, Communications, Rooms & Groups, Financial, Data Center, Settings
-- **Search Bar**: Present in top navigation
+### 3. Activity/Communication Log ✅ COMPLETED
+- Each camper profile has chronological activity log
+- Logs show status changes, payments, communications
+- Each entry timestamped and attributed to admin user
+- Admins can add manual notes
 
-### ✅ Kanban Board (Enhanced)
-- **10 Status Columns**: Applied, Accepted, Check/Unknown, Invoice Sent, Payment Plan Request, Payment Plan Running, Sending Check, Partial Paid, Partial Paid & Committed, Paid in Full
-- **Enhanced Cards**:
-  - Bigger tiles with more information
-  - Camper photo placeholder
-  - Name, Grade, Yeshiva info
-  - Parent name and contact details
-  - Due date display (with urgency indicator)
-  - Quick action buttons: Call, SMS, Email
-- **Drag & Drop**: Move campers between statuses
-- **Email Confirmation Dialog**: When moving to Accepted/Invoice Sent/Paid in Full, shows email preview before sending
+### 4. Billing & Payments ✅ COMPLETED
+- **Stripe Integration:** 3.5% processing fee for credit card payments (displayed to user before payment)
+- **Invoice System:** Create and track invoices linked to campers
+- **Parent Portal:** Unique secure link for parents to view balance and make payments
 
-### ✅ Camper Management
-- **Clickable Rows**: Click anywhere on row to view camper details
-- **Photo Support**: Field added for camper photos
-- **Comprehensive Fields**: All fields from original Jotform including yeshiva, grade, emergency contacts, medical info
-- **Filters**: Search, Grade filter, Status filter
+### 5. Public Application Form ✅ COMPLETED
+- Accessible at `/apply` without login
+- Multi-step wizard (4 steps): Camper & Parent Info → Address & Yeshiva → Camp History & Emergency → Medical
+- Creates camper with "Applied" status upon submission
 
-### ✅ Data Center (Replaced Exports)
-- **Reports**: Campers, Parents tabs
-- **Search & Filter**: Search across all fields, status filter for campers
-- **Column Customization**: Toggle columns on/off
-- **Sorting**: Click columns to sort
-- **Export Options**: CSV, PDF (coming soon)
-- **Clickable Rows**: Navigate to camper details
+### 6. Settings ✅ COMPLETED
+- API key management section for Gmail, Twilio, Stripe (placeholders for user to add later)
+- Email/SMS template system with dynamic merge fields
+- Visual indicator (⚡) for templates linked to automated triggers
 
-### ✅ Rooms & Groups Management (NEW)
-- **5 Group Types**:
-  - Shiur/Class (purple icon)
-  - Transportation (blue icon)
-  - Trip Group (green icon)
-  - Room/Bunk (orange icon)
-  - Custom Group (gray icon)
-- **Features**:
-  - Create groups with name, type, capacity, description
-  - Assign/unassign campers with filters (status, yeshiva, grade)
-  - "Show only ungrouped" filter
-  - Export group rosters to CSV
-  - Edit and delete groups
+## What's Been Implemented
 
-### ✅ Dynamic Email/SMS Templates
-- **Template Types**: Email and SMS
-- **Merge Fields**: 
-  - Parent: title, first/last name, cell, email, address
-  - Camper: first/last name, grade, yeshiva, status
-  - Billing: amount due, total balance, due date, payment link
-  - Camp: name, email, phone
-- **Click-to-Insert**: Merge field toolbar in editor
-- **Automatic Triggers**: ⚡ Lightning bolt icon for auto templates
-  - When camper is Accepted
-  - When paid in full
-  - Payment reminder (auto)
-  - When invoice is sent
-- **Preview**: See template with sample/real data before sending
+### December 2025
+- **Data Model Refactoring:** Merged Parent and Camper into unified Camper model
+- **Backend APIs:** All endpoints updated to use unified model
+- **CamperDetail Page:** Added activity log with manual note feature
+- **Public Application Form:** Created `/apply` route with 4-step wizard
+- **Kanban Board:** 10 status columns with drag-and-drop, parent contact actions
+- **Data Center:** Column selection by category, filtering, CSV export
+- **Settings Page:** Template management, API key placeholders
 
-### ✅ Activity Logging (NEW)
-- **Tracks**: Status changes, emails queued, group assignments
-- **Records**: Which admin performed the action
-- **Notes**: Add notes to campers with activity history
-
-### ✅ Parent Portal
-- **Secure Access**: Unique URL with access token (no login required)
-- **Header**: Bryce Canyon background image with Camp Baraisa branding
-- **Balance Summary**: Total Balance, Total Paid, Outstanding
-- **Camper List**: Shows registered campers with status
-- **Invoices**: View invoices with due dates, make payments
-- **Payment History**: Track all payments
-- **3.5% Credit Card Fee**: Clearly shown before payment with breakdown
-- **Footer**: Contact info (848.BAR.AISA, email, address), copyright
-
-### ✅ Login Page
-- **Utah/Bryce Canyon Background**
-- **Admin Portal**: Sign In / Request Access tabs
-- **Contact Info Section**: For non-admins to reach camp
-- **Admin Approval**: New accounts require approval
-
-### ✅ Settings Page (Enhanced)
-- **General**: Camp name, email, phone
-- **Integrations**:
-  - QuickBooks, Gmail, Twilio toggles
-  - **API Keys Section** (NEW):
-    - Gmail API Credentials
-    - Twilio SMS (Account SID, Auth Token, Phone Number)
-    - Jotform (API Key, Form ID)
-    - Stripe (Secret Key, Publishable Key)
-- **Templates**: Email/SMS template management with auto indicators
-- **Admins**: View pending approvals, current admin info
-
----
-
-## Backend API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new admin
-- `POST /api/auth/login` - Login
-- `GET /api/auth/pending` - Get pending admin approvals
-- `POST /api/auth/approve/{admin_id}` - Approve admin
-
-### Campers
-- `GET /api/campers` - List all campers
-- `POST /api/campers` - Create camper
-- `GET /api/campers/{id}` - Get camper details
-- `PUT /api/campers/{id}` - Update camper
-- `PUT /api/campers/{id}/status` - Update camper status (with activity log)
-
-### Parents
-- `GET /api/parents` - List all parents
-- `POST /api/parents` - Create parent
-- `GET /api/parents/{id}` - Get parent details
-
-### Groups (NEW)
-- `GET /api/groups` - List all groups (filter by type)
-- `POST /api/groups` - Create group
-- `GET /api/groups/{id}` - Get group details
-- `PUT /api/groups/{id}` - Update group
-- `DELETE /api/groups/{id}` - Delete group
-- `PUT /api/groups/{id}/assign` - Assign camper to group
-- `PUT /api/groups/{id}/unassign` - Remove camper from group
-
-### Activity Log (NEW)
-- `GET /api/activity/{entity_type}/{entity_id}` - Get activity log
-- `POST /api/activity/{entity_type}/{entity_id}/note` - Add note
-
-### Payments (NEW)
-- `GET /api/payment/calculate-fee` - Calculate 3.5% CC fee
-
-### Billing
-- `GET /api/invoices` - List invoices
-- `POST /api/invoices` - Create invoice
-- `GET /api/payments` - List payments
-- `POST /api/payments` - Record payment
-
-### Kanban
-- `GET /api/kanban` - Get board data
-
-### Search
-- `GET /api/search?q=` - Global search (campers + parents)
-
-### Templates
-- `GET /api/email-templates` - List templates
-- `POST /api/email-templates` - Create template
-- `PUT /api/email-templates/{id}` - Update template
-- `DELETE /api/email-templates/{id}` - Delete template
-- `GET /api/template-merge-fields` - Get available merge fields
-- `POST /api/templates/preview` - Preview template with data
-
-### Portal
-- `GET /api/portal/{token}` - Get parent portal data
-
----
-
-## Pending Tasks
-
-### P1 - High Priority
-- [ ] Stripe Integration for payments (test key available)
-- [ ] Gmail Integration for automated emails (API key input ready)
-- [ ] Twilio Integration for SMS (API key input ready)
-- [ ] Public Application Form (replace Jotform)
-- [ ] File upload for camper photos
-- [ ] AI-powered global search
-
-### P2 - Medium Priority
-- [ ] Invoice auto-reminders (15 days, due date, +3/7/15 days after)
-- [ ] Custom portal URLs (lastname + unique ID)
-- [ ] Admin notification email when new user signs up
-- [ ] PDF export with camper photos (card layout)
-- [ ] Combine Parents + Campers into "Families" view
-
-### P3 - Future
-- [ ] QuickBooks integration
-- [ ] Payment plans management
-- [ ] Saved report configurations in Data Center
-- [ ] Comprehensive communications hub
-- [ ] Internal charging (no fee) option
-
----
+### Previous Sessions
+- Authentication system (JWT-based)
+- Admin registration with approval workflow
+- Dashboard with stats
+- Invoice creation and payment tracking
+- Parent Portal with Stripe checkout
+- 3.5% credit card processing fee
 
 ## Tech Stack
-- **Frontend**: React, Tailwind CSS, Shadcn/UI, Recharts
-- **Backend**: FastAPI, Motor (MongoDB async driver)
-- **Database**: MongoDB
-- **Authentication**: JWT tokens
-- **Payments**: Stripe (pending integration)
+- **Frontend:** React, Tailwind CSS, Shadcn UI, React Router
+- **Backend:** FastAPI, Motor (async MongoDB), Pydantic
+- **Database:** MongoDB
+- **Payments:** Stripe
 
----
+## Database Collections
+- `campers` - Unified camper records with embedded parent info
+- `admins` - Admin user accounts
+- `invoices` - Financial invoices linked to campers
+- `activity_logs` - Activity history for campers
+- `email_templates` - Customizable communication templates
+- `groups` - Custom groupings (shiurim, trips, etc.)
+- `rooms` - Physical room assignments
+
+## Key API Endpoints
+- `POST /api/applications` - Public endpoint for parent applications
+- `GET /api/campers` - List all campers
+- `POST /api/campers` - Create camper with embedded parent info
+- `GET /api/activities` - Get activity log
+- `POST /api/activities/note` - Add manual note
+- `GET /api/kanban` - Get Kanban board data
+- `GET /api/portal/{token}` - Parent portal data
+- `POST /api/portal/{token}/payment` - Create payment session
+
+## Pending/Backlog Features
+
+### P1 - High Priority
+- **Invoice Reminder System:** Auto-send reminders at 15 days, due date, +3/+7/+15 days after
+- **Confirmation Pop-ups:** Modal before sending automated emails/SMS from Kanban status changes
+- **Save Report Configurations:** Allow saving Data Center report configs for reuse
+- **PDF Export with Photos:** Export camper data with photo cards
+
+### P2 - Medium Priority  
+- **AI-Powered Search:** Natural language search integration
+- **Admin Approval UI:** Interface for approving new admin registrations
+- **Full Rooms & Groups:** Complete building/bed assignment and group linking to profiles
+
+### P3 - Lower Priority
+- **Custom Portal URLs:** Generate unique URLs like `lastname-randomstring`
+- **Financials Module:** Expense tracking, QuickBooks integration
+- **Email/SMS Integration:** Connect actual Gmail and Twilio APIs (currently placeholders)
 
 ## Test Credentials
-- **Admin**: admin@campbaraisa.com / testpassword123
-- **Parent Portal**: /portal/zuiU-lz6QwEs4hTwL4vpBNQLa_mIKMgEKrqZZD176O0
+- **Admin Email:** admin@campbaraisa.com
+- **Admin Password:** testpassword123
 
----
-
-Last Updated: February 2, 2026
+## Notes
+- Gmail and Twilio APIs are MOCKED - placeholders for user to add API keys via Settings
+- Existing test campers may show "No parent info" if created before unified model migration
+- Stripe test key is pre-configured for payments
