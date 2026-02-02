@@ -180,7 +180,7 @@ const ParentPortal = () => {
               <h1 className="font-heading text-3xl md:text-4xl font-bold text-white">
                 Camp Baraisa
               </h1>
-              <p className="text-white/80">Utah Summer Camp</p>
+              <p className="text-white/90">The Ultimate Bein Hazmanim Experience</p>
             </div>
           </div>
         </div>
