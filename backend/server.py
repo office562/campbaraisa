@@ -1623,25 +1623,23 @@ async def preview_template(
             merge_data["camper_status"] = camper.get("status", "")
             merge_data["due_date"] = camper.get("due_date", "")
             
-            # Get parent data
-            parent = await db.parents.find_one({"id": camper.get("parent_id")}, {"_id": 0})
-            if parent:
-                merge_data["parent_father_title"] = parent.get("father_title", "Mr.")
-                merge_data["parent_father_first_name"] = parent.get("father_first_name", "")
-                merge_data["parent_father_last_name"] = parent.get("father_last_name", "")
-                merge_data["parent_father_cell"] = parent.get("father_cell", "")
-                merge_data["parent_mother_first_name"] = parent.get("mother_first_name", "")
-                merge_data["parent_mother_last_name"] = parent.get("mother_last_name", "")
-                merge_data["parent_mother_cell"] = parent.get("mother_cell", "")
-                merge_data["parent_email"] = parent.get("email", "")
-                merge_data["parent_address"] = parent.get("address", "")
-                merge_data["payment_link"] = f"{os.environ.get('FRONTEND_URL', '')}/portal/{parent.get('access_token', '')}"
-                merge_data["total_balance"] = f"${parent.get('total_balance', 0):,.2f}"
-                
-                # Calculate amount due from invoices
-                invoices = await db.invoices.find({"parent_id": parent["id"], "status": {"$ne": "paid"}}, {"_id": 0}).to_list(100)
-                amount_due = sum(inv.get("amount", 0) - inv.get("paid_amount", 0) for inv in invoices)
-                merge_data["amount_due"] = f"${amount_due:,.2f}"
+            # Parent data is now embedded in camper
+            merge_data["parent_father_title"] = camper.get("father_title", "Mr.")
+            merge_data["parent_father_first_name"] = camper.get("father_first_name", "")
+            merge_data["parent_father_last_name"] = camper.get("father_last_name", "")
+            merge_data["parent_father_cell"] = camper.get("father_cell", "")
+            merge_data["parent_mother_first_name"] = camper.get("mother_first_name", "")
+            merge_data["parent_mother_last_name"] = camper.get("mother_last_name", "")
+            merge_data["parent_mother_cell"] = camper.get("mother_cell", "")
+            merge_data["parent_email"] = camper.get("parent_email", "")
+            merge_data["parent_address"] = camper.get("address", "")
+            merge_data["payment_link"] = f"{os.environ.get('FRONTEND_URL', '')}/portal/{camper.get('portal_token', '')}"
+            merge_data["total_balance"] = f"${camper.get('total_balance', 0):,.2f}"
+            
+            # Calculate amount due from invoices (now linked by camper_id)
+            invoices = await db.invoices.find({"camper_id": camper["id"], "status": {"$ne": "paid"}}, {"_id": 0}).to_list(100)
+            amount_due = sum(inv.get("amount", 0) - inv.get("paid_amount", 0) for inv in invoices)
+            merge_data["amount_due"] = f"${amount_due:,.2f}"
     else:
         # Use sample data for preview
         merge_data.update({
