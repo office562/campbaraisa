@@ -492,7 +492,7 @@ function Campers() {
                   </div>
                   <div className="grid grid-cols-2 gap-4 mt-3">
                     <div>
-                      <Label>Rebbe's Phone</Label>
+                      <Label>Rebbe&apos;s Phone</Label>
                       <Input
                         value={newCamper.rebbe_phone}
                         onChange={function(e) { setNewCamper({...newCamper, rebbe_phone: e.target.value}); }}
