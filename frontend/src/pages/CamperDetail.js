@@ -721,50 +721,20 @@ function CamperDetail() {
             </CardContent>
           </Card>
 
-          {/* Quick Contact */}
+          {/* Parent Info Card */}
           <Card className="card-camp">
             <CardHeader>
-              <CardTitle className="font-heading text-xl">Quick Contact</CardTitle>
+              <CardTitle className="font-heading text-xl">Parent Info</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Parent</p>
                 <p className="font-medium">{getParentDisplayName()}</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {camper.father_cell && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700"
-                      onClick={function() { window.location.href = 'tel:' + camper.father_cell; }}
-                    >
-                      <Phone className="w-3 h-3 mr-1" />
-                      Call
-                    </Button>
-                  )}
-                  {camper.father_cell && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs hover:bg-blue-50 hover:text-blue-700"
-                      onClick={function() { window.location.href = 'sms:' + camper.father_cell; }}
-                    >
-                      <MessageSquare className="w-3 h-3 mr-1" />
-                      SMS
-                    </Button>
-                  )}
-                  {camper.parent_email && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs hover:bg-purple-50 hover:text-purple-700"
-                      onClick={function() { window.location.href = 'mailto:' + camper.parent_email; }}
-                    >
-                      <Mail className="w-3 h-3 mr-1" />
-                      Email
-                    </Button>
-                  )}
-                </div>
+                {camper.parent_email && (
+                  <p className="text-sm text-muted-foreground mt-1">{camper.parent_email}</p>
+                )}
+                {camper.father_cell && (
+                  <p className="text-sm text-muted-foreground">{camper.father_cell}</p>
+                )}
               </div>
             </CardContent>
           </Card>
