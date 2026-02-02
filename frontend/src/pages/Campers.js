@@ -304,7 +304,7 @@ function Campers() {
                     />
                   </div>
                   <div className="mt-4">
-                    <p className="text-sm text-muted-foreground mb-2">Father's Information</p>
+                    <p className="text-sm text-muted-foreground mb-2">Father&apos;s Information</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>First Name *</Label>
@@ -326,7 +326,7 @@ function Campers() {
                       </div>
                     </div>
                     <div className="mt-2">
-                      <Label>Father's Cell *</Label>
+                      <Label>Father&apos;s Cell *</Label>
                       <Input
                         value={newCamper.father_cell}
                         onChange={function(e) { setNewCamper({...newCamper, father_cell: e.target.value}); }}
@@ -336,7 +336,7 @@ function Campers() {
                     </div>
                   </div>
                   <div className="mt-4">
-                    <p className="text-sm text-muted-foreground mb-2">Mother's Information (Optional)</p>
+                    <p className="text-sm text-muted-foreground mb-2">Mother&apos;s Information (Optional)</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>First Name</Label>
@@ -354,7 +354,7 @@ function Campers() {
                       </div>
                     </div>
                     <div className="mt-2">
-                      <Label>Mother's Cell</Label>
+                      <Label>Mother&apos;s Cell</Label>
                       <Input
                         value={newCamper.mother_cell}
                         onChange={function(e) { setNewCamper({...newCamper, mother_cell: e.target.value}); }}
