@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import GlobalSearch from '@/components/GlobalSearch';
 import {
   LayoutDashboard,
   Users,
@@ -9,11 +10,10 @@ import {
   MessageSquare,
   BedDouble,
   TrendingUp,
-  Download,
+  Database,
   Settings,
   LogOut,
   Menu,
-  X,
   ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,9 +26,9 @@ const navItems = [
   { path: '/billing', icon: Receipt, label: 'Billing' },
   { path: '/kanban', icon: Columns3, label: 'Kanban' },
   { path: '/communications', icon: MessageSquare, label: 'Communications' },
-  { path: '/rooms', icon: BedDouble, label: 'Rooms' },
+  { path: '/rooms', icon: BedDouble, label: 'Rooms & Groups' },
   { path: '/financial', icon: TrendingUp, label: 'Financial' },
-  { path: '/exports', icon: Download, label: 'Exports' },
+  { path: '/data-center', icon: Database, label: 'Data Center' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -70,7 +70,7 @@ const Sidebar = ({ onClose }) => {
               className={({ isActive }) =>
                 `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
               }
-              data-testid={`nav-${item.label.toLowerCase()}`}
+              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
@@ -139,6 +139,21 @@ const AdminLayout = () => {
 
       {/* Main Content */}
       <main className="lg:pl-64 pt-16 lg:pt-0">
+        {/* Top Bar with Search */}
+        <div className="sticky top-0 z-40 bg-[#F8F5F2]/95 backdrop-blur-sm border-b border-gray-200 px-6 py-4 hidden lg:block">
+          <div className="flex items-center justify-between">
+            <GlobalSearch />
+            <div className="text-sm text-muted-foreground">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+          </div>
+        </div>
+        
+        {/* Mobile Search */}
+        <div className="lg:hidden px-4 py-3 bg-[#F8F5F2] border-b border-gray-200 mt-16">
+          <GlobalSearch />
+        </div>
+
         <div className="p-6 md:p-8 lg:p-10">
           <Outlet />
         </div>
