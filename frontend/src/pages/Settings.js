@@ -707,7 +707,7 @@ const Settings = () => {
                                 <SelectValue placeholder="Select camper for preview" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">Sample Data</SelectItem>
+                                <SelectItem value="sample">Sample Data</SelectItem>
                                 {campers.map(c => (
                                   <SelectItem key={c.id} value={c.id}>
                                     {c.first_name} {c.last_name}
