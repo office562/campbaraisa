@@ -830,20 +830,29 @@ async def delete_camper(camper_id: str, admin=Depends(get_current_admin)):
 async def get_kanban_board(admin=Depends(get_current_admin)):
     campers = await db.campers.find({}, {"_id": 0}).to_list(1000)
     
-    # Get parent info for each camper
-    parent_ids = list(set(c["parent_id"] for c in campers))
-    parents = await db.parents.find({"id": {"$in": parent_ids}}, {"_id": 0}).to_list(1000)
-    parent_map = {p["id"]: p for p in parents}
+    # Get invoice info for balance calculation
+    invoices = await db.invoices.find({}, {"_id": 0}).to_list(1000)
     
     board = {status: [] for status in KANBAN_STATUSES}
     
     for camper in campers:
-        parent = parent_map.get(camper["parent_id"], {})
+        # Calculate balance from invoices
+        camper_invoices = [i for i in invoices if i.get("camper_id") == camper["id"]]
+        total_due = sum(i.get("amount", 0) for i in camper_invoices)
+        total_paid = sum(i.get("paid_amount", 0) for i in camper_invoices)
+        balance = total_due - total_paid
+        
+        # Use embedded parent info from camper
+        parent_name = f"{camper.get('father_title', '')} {camper.get('father_first_name', '')} {camper.get('father_last_name', '')}".strip()
+        if not parent_name or parent_name == "":
+            parent_name = f"{camper.get('mother_first_name', '')} {camper.get('mother_last_name', '')}".strip()
+        
         camper_data = {
             **camper,
-            "parent_name": f"{parent.get('first_name', '')} {parent.get('last_name', '')}".strip(),
-            "parent_email": parent.get("email", ""),
-            "parent_phone": parent.get("phone", "")
+            "parent_name": parent_name,
+            "parent_email": camper.get("parent_email", ""),
+            "parent_phone": camper.get("father_cell") or camper.get("mother_cell") or "",
+            "balance": balance
         }
         status = camper.get("status", "Applied")
         if status in board:
@@ -853,21 +862,81 @@ async def get_kanban_board(admin=Depends(get_current_admin)):
 
 # ==================== INVOICE ROUTES ====================
 
+# Invoice reminder schedule: every 15 days, on due date, +3, +7, +15 days after
+REMINDER_SCHEDULE = {
+    "pre_due": [15, 30, 45, 60, 75, 90],  # Days before due date
+    "on_due": 0,  # On due date
+    "post_due": [3, 7, 15]  # Days after due date
+}
+
+def calculate_next_reminder(due_date_str: str, reminder_sent_dates: List[str]) -> Optional[str]:
+    """Calculate when the next reminder should be sent"""
+    if not due_date_str:
+        return None
+    
+    try:
+        due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
+    except:
+        return None
+    
+    today = datetime.now(timezone.utc).date()
+    days_until_due = (due_date - today).days
+    
+    # Check pre-due reminders (every 15 days before)
+    for days_before in sorted(REMINDER_SCHEDULE["pre_due"], reverse=True):
+        reminder_date = due_date - timedelta(days=days_before)
+        if reminder_date >= today and reminder_date.isoformat() not in reminder_sent_dates:
+            return reminder_date.isoformat()
+    
+    # Check due date reminder
+    if due_date >= today and due_date.isoformat() not in reminder_sent_dates:
+        return due_date.isoformat()
+    
+    # Check post-due reminders
+    for days_after in REMINDER_SCHEDULE["post_due"]:
+        reminder_date = due_date + timedelta(days=days_after)
+        if reminder_date >= today and reminder_date.isoformat() not in reminder_sent_dates:
+            return reminder_date.isoformat()
+    
+    return None
+
 @api_router.post("/invoices", response_model=InvoiceResponse)
 async def create_invoice(data: InvoiceCreate, admin=Depends(get_current_admin)):
+    # Calculate default due date (90 days from now) if not provided
+    if not data.due_date:
+        default_due = datetime.now(timezone.utc) + timedelta(days=90)
+        data.due_date = default_due.strftime("%Y-%m-%d")
+    
     invoice_doc = {
         "id": str(uuid.uuid4()),
         **data.model_dump(),
         "status": "pending",
         "paid_amount": 0.0,
+        "reminder_sent_dates": [],
+        "next_reminder_date": calculate_next_reminder(data.due_date, []),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.invoices.insert_one(invoice_doc)
     
-    # Update parent balance
-    await db.parents.update_one(
-        {"id": data.parent_id},
+    # Update camper balance
+    await db.campers.update_one(
+        {"id": data.camper_id},
         {"$inc": {"total_balance": data.amount}}
+    )
+    
+    # Log activity
+    camper = await db.campers.find_one({"id": data.camper_id}, {"_id": 0})
+    await log_activity(
+        entity_type="camper",
+        entity_id=data.camper_id,
+        action="invoice_created",
+        details={
+            "invoice_id": invoice_doc["id"],
+            "amount": data.amount,
+            "due_date": data.due_date,
+            "description": data.description
+        },
+        performed_by=admin.get("id")
     )
     
     invoice_doc.pop("_id", None)
@@ -876,19 +945,25 @@ async def create_invoice(data: InvoiceCreate, admin=Depends(get_current_admin)):
 
 @api_router.get("/invoices", response_model=List[InvoiceResponse])
 async def get_invoices(
-    parent_id: Optional[str] = None,
+    camper_id: Optional[str] = None,
     status: Optional[str] = None,
     admin=Depends(get_current_admin)
 ):
     query = {}
-    if parent_id:
-        query["parent_id"] = parent_id
+    if camper_id:
+        query["camper_id"] = camper_id
     if status:
         query["status"] = status
     
     invoices = await db.invoices.find(query, {"_id": 0}).to_list(1000)
     for inv in invoices:
         inv["created_at"] = datetime.fromisoformat(inv["created_at"])
+        # Calculate next reminder if not set
+        if not inv.get("next_reminder_date"):
+            inv["next_reminder_date"] = calculate_next_reminder(
+                inv.get("due_date"), 
+                inv.get("reminder_sent_dates", [])
+            )
     return [InvoiceResponse(**inv) for inv in invoices]
 
 @api_router.get("/invoices/{invoice_id}", response_model=InvoiceResponse)
@@ -898,6 +973,81 @@ async def get_invoice(invoice_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail="Invoice not found")
     invoice["created_at"] = datetime.fromisoformat(invoice["created_at"])
     return InvoiceResponse(**invoice)
+
+@api_router.get("/invoices/reminders/due")
+async def get_due_reminders(admin=Depends(get_current_admin)):
+    """Get all invoices that need reminders sent today"""
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    invoices = await db.invoices.find(
+        {"status": {"$ne": "paid"}, "next_reminder_date": today},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Enrich with camper info
+    result = []
+    for inv in invoices:
+        camper = await db.campers.find_one({"id": inv["camper_id"]}, {"_id": 0})
+        if camper:
+            result.append({
+                **inv,
+                "camper_name": f"{camper.get('first_name')} {camper.get('last_name')}",
+                "parent_email": camper.get("parent_email"),
+                "parent_phone": camper.get("father_cell") or camper.get("mother_cell")
+            })
+    
+    return result
+
+@api_router.post("/invoices/{invoice_id}/send-reminder")
+async def send_invoice_reminder(invoice_id: str, admin=Depends(get_current_admin)):
+    """Mark reminder as sent and calculate next reminder date"""
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    today = datetime.now(timezone.utc).date().isoformat()
+    reminder_sent_dates = invoice.get("reminder_sent_dates", [])
+    reminder_sent_dates.append(today)
+    
+    next_reminder = calculate_next_reminder(invoice.get("due_date"), reminder_sent_dates)
+    
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {
+            "reminder_sent_dates": reminder_sent_dates,
+            "next_reminder_date": next_reminder
+        }}
+    )
+    
+    # Log activity
+    await log_activity(
+        entity_type="camper",
+        entity_id=invoice["camper_id"],
+        action="reminder_sent",
+        details={
+            "invoice_id": invoice_id,
+            "reminder_date": today,
+            "next_reminder": next_reminder
+        },
+        performed_by=admin.get("id")
+    )
+    
+    # Create communication log
+    camper = await db.campers.find_one({"id": invoice["camper_id"]}, {"_id": 0})
+    if camper:
+        comm_doc = {
+            "id": str(uuid.uuid4()),
+            "camper_id": invoice["camper_id"],
+            "type": "email",
+            "subject": f"Payment Reminder - {camper.get('first_name')} {camper.get('last_name')}",
+            "message": f"Reminder for invoice ${invoice['amount']} - Due: {invoice.get('due_date')}",
+            "direction": "outbound",
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.communications.insert_one(comm_doc)
+    
+    return {"message": "Reminder sent", "next_reminder_date": next_reminder}
 
 # ==================== PAYMENT ROUTES ====================
 
