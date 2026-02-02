@@ -536,7 +536,7 @@ const Settings = () => {
                 setShowAddTemplate(open);
                 if (!open) {
                   setEditingTemplate(null);
-                  setNewTemplate({ name: '', subject: '', body: '', trigger: '', template_type: 'email' });
+                  setNewTemplate({ name: '', subject: '', body: '', trigger: 'none', template_type: 'email' });
                   setPreviewData(null);
                 }
               }}>
