@@ -474,27 +474,42 @@ function Kanban() {
                 </div>
               </div>
               
-              {/* Subject */}
-              <div>
-                <label className="text-sm font-medium">Subject</label>
-                <input
-                  type="text"
-                  value={emailContent.subject}
-                  onChange={(e) => setEmailContent({ ...emailContent, subject: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#E85D04] focus:border-transparent"
-                />
-              </div>
-              
-              {/* Body */}
-              <div>
-                <label className="text-sm font-medium">Message</label>
-                <Textarea
-                  value={emailContent.body}
-                  onChange={(e) => setEmailContent({ ...emailContent, body: e.target.value })}
-                  rows={10}
-                  className="mt-1"
-                />
-              </div>
+              {emailContent.noTemplate ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800">{emailContent.message}</p>
+                </div>
+              ) : (
+                <>
+                  {/* Template Name */}
+                  {emailContent.templateName && (
+                    <div className="text-sm text-muted-foreground">
+                      Using template: <span className="font-medium">{emailContent.templateName}</span>
+                    </div>
+                  )}
+                  
+                  {/* Subject */}
+                  <div>
+                    <label className="text-sm font-medium">Subject</label>
+                    <input
+                      type="text"
+                      value={emailContent.subject}
+                      onChange={(e) => setEmailContent({ ...emailContent, subject: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#E85D04] focus:border-transparent"
+                    />
+                  </div>
+                  
+                  {/* Body */}
+                  <div>
+                    <label className="text-sm font-medium">Message</label>
+                    <Textarea
+                      value={emailContent.body}
+                      onChange={(e) => setEmailContent({ ...emailContent, body: e.target.value })}
+                      rows={10}
+                      className="mt-1"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
           
@@ -512,16 +527,18 @@ function Kanban() {
               variant="ghost"
               onClick={skipEmailAndMove}
             >
-              Move Without Email
+              {emailContent.noTemplate ? 'Move Anyway' : 'Move Without Email'}
             </Button>
-            <Button
-              className="btn-camp-primary"
-              onClick={confirmEmailAndMove}
-              disabled={!pendingMove?.camper?.parent_email}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Send & Move
-            </Button>
+            {!emailContent.noTemplate && (
+              <Button
+                className="btn-camp-primary"
+                onClick={confirmEmailAndMove}
+                disabled={!pendingMove?.camper?.parent_email}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Send & Move
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
