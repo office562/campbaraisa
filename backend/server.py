@@ -889,16 +889,46 @@ async def get_payments(invoice_id: Optional[str] = None, admin=Depends(get_curre
 
 # ==================== STRIPE ROUTES ====================
 
+# Credit card processing fee rate
+CREDIT_CARD_FEE_RATE = 0.035  # 3.5%
+
+@api_router.get("/payment/calculate-fee")
+async def calculate_payment_fee(amount: float, include_fee: bool = True):
+    """Calculate the credit card processing fee"""
+    if include_fee:
+        fee = round(amount * CREDIT_CARD_FEE_RATE, 2)
+        total = round(amount + fee, 2)
+        return {
+            "base_amount": amount,
+            "fee_rate": CREDIT_CARD_FEE_RATE,
+            "fee_amount": fee,
+            "total_with_fee": total,
+            "fee_description": f"3.5% credit card processing fee"
+        }
+    return {
+        "base_amount": amount,
+        "fee_rate": 0,
+        "fee_amount": 0,
+        "total_with_fee": amount,
+        "fee_description": "No fee (internal payment)"
+    }
+
 @api_router.post("/stripe/checkout")
 async def create_stripe_checkout(
     request: Request,
     invoice_id: str,
     amount: float,
-    origin_url: str
+    origin_url: str,
+    include_fee: bool = True  # Whether to add the 3.5% fee
 ):
     invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Calculate fee
+    base_amount = float(amount)
+    fee_amount = round(base_amount * CREDIT_CARD_FEE_RATE, 2) if include_fee else 0
+    total_amount = round(base_amount + fee_amount, 2)
     
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
@@ -909,13 +939,16 @@ async def create_stripe_checkout(
     cancel_url = f"{origin_url}/payment/cancel"
     
     checkout_request = CheckoutSessionRequest(
-        amount=float(amount),
+        amount=total_amount,
         currency="usd",
         success_url=success_url,
         cancel_url=cancel_url,
         metadata={
             "invoice_id": invoice_id,
-            "parent_id": invoice["parent_id"]
+            "parent_id": invoice["parent_id"],
+            "base_amount": str(base_amount),
+            "fee_amount": str(fee_amount),
+            "include_fee": str(include_fee)
         }
     )
     
