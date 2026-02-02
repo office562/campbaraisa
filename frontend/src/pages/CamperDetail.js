@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -23,15 +24,22 @@ import {
   User, 
   Phone, 
   Mail,
-  MapPin,
   GraduationCap,
-  Building,
   FileText,
   AlertCircle,
   Tent,
   Calendar,
   Camera,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  Plus,
+  DollarSign,
+  Users,
+  Send,
+  CheckCircle,
+  XCircle,
+  Edit,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -51,27 +59,56 @@ const KANBAN_STATUSES = [
 
 const GRADES = ['11th', '12th', '1st yr Bais Medrash', '2nd yr Bais Medrash'];
 
+const ACTIVITY_ICONS = {
+  'status_changed': <Edit className="w-4 h-4" />,
+  'invoice_created': <DollarSign className="w-4 h-4" />,
+  'payment_received': <CheckCircle className="w-4 h-4" />,
+  'email_sent': <Mail className="w-4 h-4" />,
+  'email_queued': <Send className="w-4 h-4" />,
+  'sms_sent': <MessageSquare className="w-4 h-4" />,
+  'note_added': <FileText className="w-4 h-4" />,
+  'camper_created': <Plus className="w-4 h-4" />,
+  'camper_updated': <Edit className="w-4 h-4" />,
+  'group_assigned': <Users className="w-4 h-4" />,
+};
+
+const ACTIVITY_COLORS = {
+  'status_changed': 'bg-blue-100 text-blue-700',
+  'invoice_created': 'bg-purple-100 text-purple-700',
+  'payment_received': 'bg-green-100 text-green-700',
+  'email_sent': 'bg-indigo-100 text-indigo-700',
+  'email_queued': 'bg-orange-100 text-orange-700',
+  'sms_sent': 'bg-teal-100 text-teal-700',
+  'note_added': 'bg-gray-100 text-gray-700',
+  'camper_created': 'bg-emerald-100 text-emerald-700',
+  'camper_updated': 'bg-amber-100 text-amber-700',
+  'group_assigned': 'bg-pink-100 text-pink-700',
+};
+
 function CamperDetail() {
   const { camperId } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, admin } = useAuth();
   const [camper, setCamper] = useState(null);
-  const [parent, setParent] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
 
   useEffect(function() {
     async function fetchData() {
       try {
-        const camperRes = await axios.get(API_URL + '/api/campers/' + camperId, {
-          headers: { Authorization: 'Bearer ' + token }
-        });
+        const [camperRes, activitiesRes] = await Promise.all([
+          axios.get(API_URL + '/api/campers/' + camperId, {
+            headers: { Authorization: 'Bearer ' + token }
+          }),
+          axios.get(API_URL + '/api/activities?entity_type=camper&entity_id=' + camperId, {
+            headers: { Authorization: 'Bearer ' + token }
+          })
+        ]);
         setCamper(camperRes.data);
-
-        const parentRes = await axios.get(API_URL + '/api/parents/' + camperRes.data.parent_id, {
-          headers: { Authorization: 'Bearer ' + token }
-        });
-        setParent(parentRes.data);
+        setActivities(activitiesRes.data || []);
       } catch (error) {
         toast.error('Failed to fetch camper details');
         navigate('/campers');
@@ -89,6 +126,11 @@ function CamperDetail() {
         headers: { Authorization: 'Bearer ' + token }
       });
       toast.success('Camper updated successfully');
+      // Refresh activities
+      const activitiesRes = await axios.get(API_URL + '/api/activities?entity_type=camper&entity_id=' + camperId, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      setActivities(activitiesRes.data || []);
     } catch (error) {
       toast.error('Failed to update camper');
     } finally {
@@ -104,11 +146,42 @@ function CamperDetail() {
       setCamper({ ...camper, status: newStatus });
       toast.success('Status updated to ' + newStatus);
       
+      // Refresh activities
+      const activitiesRes = await axios.get(API_URL + '/api/activities?entity_type=camper&entity_id=' + camperId, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      setActivities(activitiesRes.data || []);
+      
       if (newStatus === 'Accepted' || newStatus === 'Paid in Full') {
         toast.info('Automated email has been queued');
       }
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  }
+
+  async function handleAddNote() {
+    if (!newNote.trim()) return;
+    setAddingNote(true);
+    try {
+      await axios.post(API_URL + '/api/activities/note', {
+        entity_type: 'camper',
+        entity_id: camperId,
+        note: newNote
+      }, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      toast.success('Note added');
+      setNewNote('');
+      // Refresh activities
+      const activitiesRes = await axios.get(API_URL + '/api/activities?entity_type=camper&entity_id=' + camperId, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      setActivities(activitiesRes.data || []);
+    } catch (error) {
+      toast.error('Failed to add note');
+    } finally {
+      setAddingNote(false);
     }
   }
 
@@ -136,10 +209,59 @@ function CamperDetail() {
   };
 
   function getParentDisplayName() {
-    if (!parent) return '';
-    const firstName = parent.father_first_name || parent.first_name || '';
-    const lastName = parent.father_last_name || parent.last_name || '';
-    return (firstName + ' ' + lastName).trim();
+    const firstName = camper.father_first_name || '';
+    const lastName = camper.father_last_name || '';
+    if (firstName || lastName) {
+      return (firstName + ' ' + lastName).trim();
+    }
+    const motherFirst = camper.mother_first_name || '';
+    const motherLast = camper.mother_last_name || '';
+    return (motherFirst + ' ' + motherLast).trim() || 'No parent info';
+  }
+
+  function formatActivityTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return diffMins + ' min ago';
+    if (diffHours < 24) return diffHours + ' hr ago';
+    if (diffDays < 7) return diffDays + ' days ago';
+    return date.toLocaleDateString();
+  }
+
+  function formatActivityMessage(activity) {
+    const action = activity.action;
+    const details = activity.details || {};
+    
+    switch(action) {
+      case 'status_changed':
+        return `Status changed from "${details.old_status || 'Unknown'}" to "${details.new_status || 'Unknown'}"`;
+      case 'invoice_created':
+        return `Invoice created for $${details.amount?.toLocaleString() || 0}`;
+      case 'payment_received':
+        return `Payment of $${details.amount?.toLocaleString() || 0} received`;
+      case 'email_sent':
+        return `Email sent: "${details.subject || 'No subject'}"`;
+      case 'email_queued':
+        return `Email queued: ${details.type || 'notification'}`;
+      case 'sms_sent':
+        return 'SMS sent to parent';
+      case 'note_added':
+        return details.note || 'Note added';
+      case 'camper_created':
+        return 'Camper profile created';
+      case 'camper_updated':
+        return 'Camper profile updated';
+      case 'group_assigned':
+        return `Added to group: ${details.group_name || 'Unknown'}`;
+      default:
+        return action.replace(/_/g, ' ');
+    }
   }
 
   return (
@@ -216,8 +338,9 @@ function CamperDetail() {
 
           {/* Tabbed Content */}
           <Tabs defaultValue="basic" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="parent">Parent</TabsTrigger>
               <TabsTrigger value="yeshiva">Yeshiva</TabsTrigger>
               <TabsTrigger value="emergency">Emergency</TabsTrigger>
               <TabsTrigger value="medical">Medical</TabsTrigger>
@@ -316,6 +439,101 @@ function CamperDetail() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="parent">
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#E85D04]" />
+                    Parent/Guardian Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Parent Email</Label>
+                    <Input
+                      type="email"
+                      value={camper.parent_email || ''}
+                      onChange={function(e) { setCamper({...camper, parent_email: e.target.value}); }}
+                    />
+                  </div>
+                  
+                  {/* Father */}
+                  <div className="border-t pt-4">
+                    <p className="font-medium mb-3">Father&apos;s Information</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>First Name</Label>
+                        <Input
+                          value={camper.father_first_name || ''}
+                          onChange={function(e) { setCamper({...camper, father_first_name: e.target.value}); }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Last Name</Label>
+                        <Input
+                          value={camper.father_last_name || ''}
+                          onChange={function(e) { setCamper({...camper, father_last_name: e.target.value}); }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div>
+                        <Label>Cell Phone</Label>
+                        <Input
+                          value={camper.father_cell || ''}
+                          onChange={function(e) { setCamper({...camper, father_cell: e.target.value}); }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Work Phone</Label>
+                        <Input
+                          value={camper.father_work_phone || ''}
+                          onChange={function(e) { setCamper({...camper, father_work_phone: e.target.value}); }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Mother */}
+                  <div className="border-t pt-4">
+                    <p className="font-medium mb-3">Mother&apos;s Information</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>First Name</Label>
+                        <Input
+                          value={camper.mother_first_name || ''}
+                          onChange={function(e) { setCamper({...camper, mother_first_name: e.target.value}); }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Last Name</Label>
+                        <Input
+                          value={camper.mother_last_name || ''}
+                          onChange={function(e) { setCamper({...camper, mother_last_name: e.target.value}); }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div>
+                        <Label>Cell Phone</Label>
+                        <Input
+                          value={camper.mother_cell || ''}
+                          onChange={function(e) { setCamper({...camper, mother_cell: e.target.value}); }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Work Phone</Label>
+                        <Input
+                          value={camper.mother_work_phone || ''}
+                          onChange={function(e) { setCamper({...camper, mother_work_phone: e.target.value}); }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="yeshiva">
               <Card className="card-camp">
                 <CardHeader>
@@ -368,7 +586,7 @@ function CamperDetail() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Rebbe's Phone</Label>
+                      <Label>Rebbe&apos;s Phone</Label>
                       <Input
                         value={camper.rebbe_phone || ''}
                         onChange={function(e) { setCamper({...camper, rebbe_phone: e.target.value}); }}
@@ -503,150 +721,101 @@ function CamperDetail() {
             </CardContent>
           </Card>
 
-          {/* Parent Info */}
-          {parent && (
-            <Card className="card-camp">
-              <CardHeader>
-                <CardTitle className="font-heading text-xl">Parent/Guardian</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Father */}
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Father</p>
-                  <p className="font-medium">
-                    {parent.father_first_name || parent.first_name} {parent.father_last_name || parent.last_name}
-                  </p>
-                  {(parent.father_cell || parent.phone) && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700"
-                        onClick={function() { window.location.href = 'tel:' + (parent.father_cell || parent.phone); }}
-                      >
-                        <Phone className="w-3 h-3 mr-1" />
-                        Call
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs hover:bg-blue-50 hover:text-blue-700"
-                        onClick={function() { window.location.href = 'sms:' + (parent.father_cell || parent.phone); }}
-                      >
-                        <MessageSquare className="w-3 h-3 mr-1" />
-                        SMS
-                      </Button>
-                    </div>
+          {/* Quick Contact */}
+          <Card className="card-camp">
+            <CardHeader>
+              <CardTitle className="font-heading text-xl">Quick Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Parent</p>
+                <p className="font-medium">{getParentDisplayName()}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {camper.father_cell && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700"
+                      onClick={function() { window.location.href = 'tel:' + camper.father_cell; }}
+                    >
+                      <Phone className="w-3 h-3 mr-1" />
+                      Call
+                    </Button>
                   )}
-                  {(parent.father_cell || parent.phone) && (
-                    <p className="text-xs text-muted-foreground mt-1">{parent.father_cell || parent.phone}</p>
+                  {camper.father_cell && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs hover:bg-blue-50 hover:text-blue-700"
+                      onClick={function() { window.location.href = 'sms:' + camper.father_cell; }}
+                    >
+                      <MessageSquare className="w-3 h-3 mr-1" />
+                      SMS
+                    </Button>
                   )}
-                </div>
-
-                {/* Mother */}
-                {parent.mother_first_name && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Mother</p>
-                    <p className="font-medium">
-                      {parent.mother_first_name} {parent.mother_last_name}
-                    </p>
-                    {parent.mother_cell && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700"
-                          onClick={function() { window.location.href = 'tel:' + parent.mother_cell; }}
-                        >
-                          <Phone className="w-3 h-3 mr-1" />
-                          Call
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs hover:bg-blue-50 hover:text-blue-700"
-                          onClick={function() { window.location.href = 'sms:' + parent.mother_cell; }}
-                        >
-                          <MessageSquare className="w-3 h-3 mr-1" />
-                          SMS
-                        </Button>
-                      </div>
-                    )}
-                    {parent.mother_cell && (
-                      <p className="text-xs text-muted-foreground mt-1">{parent.mother_cell}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Email */}
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Email</p>
-                  <div className="flex items-center gap-2">
+                  {camper.parent_email && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-xs hover:bg-purple-50 hover:text-purple-700"
-                      onClick={function() { window.location.href = 'mailto:' + parent.email; }}
+                      onClick={function() { window.location.href = 'mailto:' + camper.parent_email; }}
                     >
                       <Mail className="w-3 h-3 mr-1" />
                       Email
                     </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{parent.email}</p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Billing Summary */}
-          {parent && (
-            <Card className="card-camp">
-              <CardHeader>
-                <CardTitle className="font-heading text-xl">Billing</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Balance</span>
-                    <span className="font-bold">${(parent.total_balance || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Paid</span>
-                    <span className="font-bold text-[#2A9D8F]">${(parent.total_paid || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="border-t pt-3 flex justify-between">
-                    <span className="text-muted-foreground">Outstanding</span>
-                    <span className="font-bold text-[#E76F51]">
-                      ${((parent.total_balance || 0) - (parent.total_paid || 0)).toLocaleString()}
-                    </span>
-                  </div>
+          <Card className="card-camp">
+            <CardHeader>
+              <CardTitle className="font-heading text-xl">Billing</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Balance</span>
+                  <span className="font-bold">${(camper.total_balance || 0).toLocaleString()}</span>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={function() { navigate('/billing'); }}
-                  data-testid="view-billing-btn"
-                >
-                  View Full Billing
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Paid</span>
+                  <span className="font-bold text-[#2A9D8F]">${(camper.total_paid || 0).toLocaleString()}</span>
+                </div>
+                <div className="border-t pt-3 flex justify-between">
+                  <span className="text-muted-foreground">Outstanding</span>
+                  <span className="font-bold text-[#E76F51]">
+                    ${((camper.total_balance || 0) - (camper.total_paid || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={function() { navigate('/billing'); }}
+                data-testid="view-billing-btn"
+              >
+                View Full Billing
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Portal Link */}
-          {parent && (
+          {camper.portal_token && (
             <Card className="card-camp bg-[#E85D04]/5">
               <CardContent className="pt-6">
                 <p className="text-sm font-medium mb-2">Parent Portal Link</p>
                 <div className="bg-white rounded-lg p-3 text-xs break-all border">
-                  {window.location.origin}/portal/{parent.access_token}
+                  {window.location.origin}/portal/{camper.portal_token}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-full mt-3"
                   onClick={function() {
-                    navigator.clipboard.writeText(window.location.origin + '/portal/' + parent.access_token);
+                    navigator.clipboard.writeText(window.location.origin + '/portal/' + camper.portal_token);
                     toast.success('Link copied to clipboard');
                   }}
                   data-testid="copy-portal-link"
@@ -656,6 +825,69 @@ function CamperDetail() {
               </CardContent>
             </Card>
           )}
+
+          {/* Activity Log */}
+          <Card className="card-camp">
+            <CardHeader>
+              <CardTitle className="font-heading text-xl flex items-center gap-2">
+                <Clock className="w-5 h-5 text-[#E85D04]" />
+                Activity Log
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Add Note */}
+              <div className="mb-4 pb-4 border-b">
+                <Textarea
+                  placeholder="Add a note..."
+                  value={newNote}
+                  onChange={function(e) { setNewNote(e.target.value); }}
+                  rows={2}
+                  className="text-sm"
+                />
+                <Button
+                  size="sm"
+                  className="mt-2 btn-camp-primary"
+                  onClick={handleAddNote}
+                  disabled={addingNote || !newNote.trim()}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {addingNote ? 'Adding...' : 'Add Note'}
+                </Button>
+              </div>
+              
+              {/* Activity List */}
+              <ScrollArea className="h-[300px] pr-4">
+                {activities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {activities.map(function(activity) {
+                      return (
+                        <div key={activity.id} className="flex gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${ACTIVITY_COLORS[activity.action] || 'bg-gray-100 text-gray-700'}`}>
+                            {ACTIVITY_ICONS[activity.action] || <Clock className="w-4 h-4" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm">{formatActivityMessage(activity)}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                {formatActivityTime(activity.created_at)}
+                              </span>
+                              {activity.performed_by_name && (
+                                <span className="text-xs text-muted-foreground">
+                                  • {activity.performed_by_name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
