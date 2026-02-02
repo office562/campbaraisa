@@ -17,6 +17,7 @@ import DataCenter from "@/pages/DataCenter";
 import Settings from "@/pages/Settings";
 import ParentPortal from "@/pages/ParentPortal";
 import PaymentSuccess from "@/pages/PaymentSuccess";
+import Apply from "@/pages/Apply";
 
 // Layout
 import AdminLayout from "@/components/AdminLayout";
