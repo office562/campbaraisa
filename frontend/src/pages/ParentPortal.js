@@ -43,6 +43,7 @@ const ParentPortal = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [feeInfo, setFeeInfo] = useState(null);
 
   const fetchData = async () => {
     try {
