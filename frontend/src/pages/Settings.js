@@ -409,6 +409,118 @@ const Settings = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* API Keys Section */}
+            <Card className="card-camp">
+              <CardHeader>
+                <CardTitle className="font-heading text-xl flex items-center gap-2">
+                  <Key className="w-5 h-5 text-[#E85D04]" />
+                  API Keys & Credentials
+                </CardTitle>
+                <CardDescription>Enter your integration API keys (stored securely)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Gmail/Google */}
+                <div className="p-4 border rounded-lg">
+                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                    <Mail className="w-4 h-4" />
+                    Gmail API Credentials
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Gmail API Key or Service Account JSON"
+                    value={settings?.gmail_api_key || ''}
+                    onChange={(e) => setSettings({...settings, gmail_api_key: e.target.value})}
+                    className="mb-2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get your credentials from <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Google Cloud Console</a>
+                  </p>
+                </div>
+
+                {/* Twilio */}
+                <div className="p-4 border rounded-lg">
+                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                    <Phone className="w-4 h-4" />
+                    Twilio SMS Credentials
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <Input
+                      type="text"
+                      placeholder="Account SID"
+                      value={settings?.twilio_account_sid || ''}
+                      onChange={(e) => setSettings({...settings, twilio_account_sid: e.target.value})}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Auth Token"
+                      value={settings?.twilio_auth_token || ''}
+                      onChange={(e) => setSettings({...settings, twilio_auth_token: e.target.value})}
+                    />
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Twilio Phone Number (+1234567890)"
+                    value={settings?.twilio_phone_number || ''}
+                    onChange={(e) => setSettings({...settings, twilio_phone_number: e.target.value})}
+                    className="mb-2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get your credentials from <a href="https://console.twilio.com" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Twilio Console</a>
+                  </p>
+                </div>
+
+                {/* Jotform */}
+                <div className="p-4 border rounded-lg">
+                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4" />
+                    Jotform Integration
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Jotform API Key"
+                    value={settings?.jotform_api_key || ''}
+                    onChange={(e) => setSettings({...settings, jotform_api_key: e.target.value})}
+                    className="mb-2"
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Jotform Form ID (for current year application)"
+                    value={settings?.jotform_form_id || ''}
+                    onChange={(e) => setSettings({...settings, jotform_form_id: e.target.value})}
+                    className="mb-2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get your API key from <a href="https://www.jotform.com/myaccount/api" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Jotform API Settings</a>
+                  </p>
+                </div>
+
+                {/* Stripe */}
+                <div className="p-4 border rounded-lg">
+                  <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                    <DollarSign className="w-4 h-4" />
+                    Stripe Payment Keys
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Stripe Secret Key (sk_live_... or sk_test_...)"
+                    value={settings?.stripe_secret_key || ''}
+                    onChange={(e) => setSettings({...settings, stripe_secret_key: e.target.value})}
+                    className="mb-2"
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Stripe Publishable Key (pk_live_... or pk_test_...)"
+                    value={settings?.stripe_publishable_key || ''}
+                    onChange={(e) => setSettings({...settings, stripe_publishable_key: e.target.value})}
+                    className="mb-2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get your keys from <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">Stripe Dashboard</a>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
