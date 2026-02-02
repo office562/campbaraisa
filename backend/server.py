@@ -1845,18 +1845,45 @@ async def export_parents(admin=Depends(get_current_admin)):
 
 @api_router.get("/portal/{access_token}")
 async def get_parent_portal(access_token: str):
+    """Portal can now be accessed via camper's portal_token or old parent access_token"""
+    # First try to find camper by portal_token
+    camper = await db.campers.find_one({"portal_token": access_token}, {"_id": 0})
+    
+    if camper:
+        # New model - camper has all info
+        invoices = await db.invoices.find({"camper_id": camper["id"]}, {"_id": 0}).to_list(100)
+        invoice_ids = [inv["id"] for inv in invoices]
+        payments = await db.payments.find({"invoice_id": {"$in": invoice_ids}}, {"_id": 0}).to_list(100)
+        
+        return {
+            "parent": {
+                "id": camper["id"],
+                "first_name": camper.get("father_first_name") or camper.get("first_name"),
+                "last_name": camper.get("father_last_name") or camper.get("last_name"),
+                "email": camper.get("parent_email"),
+                "father_first_name": camper.get("father_first_name"),
+                "father_cell": camper.get("father_cell"),
+                "phone": camper.get("father_cell") or camper.get("mother_cell"),
+                "total_balance": camper.get("total_balance", 0),
+                "total_paid": camper.get("total_paid", 0)
+            },
+            "campers": [camper],
+            "invoices": invoices,
+            "payments": payments
+        }
+    
+    # Fallback to old parent model for backwards compatibility
     parent = await db.parents.find_one({"access_token": access_token}, {"_id": 0})
     if not parent:
         raise HTTPException(status_code=404, detail="Invalid access link")
     
-    # Get campers
+    # Get campers (old model)
     campers = await db.campers.find({"parent_id": parent["id"]}, {"_id": 0}).to_list(100)
     
     # Get invoices
     invoices = await db.invoices.find({"parent_id": parent["id"]}, {"_id": 0}).to_list(100)
     
     # Get payments
-    camper_ids = [c["id"] for c in campers]
     payments = await db.payments.find(
         {"invoice_id": {"$in": [inv["id"] for inv in invoices]}},
         {"_id": 0}
@@ -1865,10 +1892,12 @@ async def get_parent_portal(access_token: str):
     return {
         "parent": {
             "id": parent["id"],
-            "first_name": parent["first_name"],
-            "last_name": parent["last_name"],
+            "first_name": parent.get("father_first_name") or parent.get("first_name"),
+            "last_name": parent.get("father_last_name") or parent.get("last_name"),
             "email": parent["email"],
-            "phone": parent.get("phone"),
+            "father_first_name": parent.get("father_first_name"),
+            "father_cell": parent.get("father_cell"),
+            "phone": parent.get("phone") or parent.get("father_cell"),
             "total_balance": parent.get("total_balance", 0),
             "total_paid": parent.get("total_paid", 0)
         },
@@ -1878,14 +1907,32 @@ async def get_parent_portal(access_token: str):
     }
 
 @api_router.post("/portal/{access_token}/payment")
-async def portal_create_payment(access_token: str, request: Request, invoice_id: str, amount: float):
-    parent = await db.parents.find_one({"access_token": access_token}, {"_id": 0})
-    if not parent:
-        raise HTTPException(status_code=404, detail="Invalid access link")
+async def portal_create_payment(
+    access_token: str, 
+    request: Request, 
+    invoice_id: str, 
+    amount: float,
+    include_fee: bool = True  # 3.5% credit card fee
+):
+    # Try camper portal_token first
+    camper = await db.campers.find_one({"portal_token": access_token}, {"_id": 0})
     
-    invoice = await db.invoices.find_one({"id": invoice_id, "parent_id": parent["id"]}, {"_id": 0})
+    if camper:
+        invoice = await db.invoices.find_one({"id": invoice_id, "camper_id": camper["id"]}, {"_id": 0})
+    else:
+        # Fallback to parent
+        parent = await db.parents.find_one({"access_token": access_token}, {"_id": 0})
+        if not parent:
+            raise HTTPException(status_code=404, detail="Invalid access link")
+        invoice = await db.invoices.find_one({"id": invoice_id, "parent_id": parent["id"]}, {"_id": 0})
+    
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Calculate fee
+    base_amount = float(amount)
+    fee_amount = round(base_amount * CREDIT_CARD_FEE_RATE, 2) if include_fee else 0
+    total_amount = round(base_amount + fee_amount, 2)
     
     # Get origin from request
     origin = request.headers.get("origin", str(request.base_url).rstrip('/'))
@@ -1899,14 +1946,16 @@ async def portal_create_payment(access_token: str, request: Request, invoice_id:
     cancel_url = f"{origin}/portal/{access_token}?payment=cancelled"
     
     checkout_request = CheckoutSessionRequest(
-        amount=float(amount),
+        amount=total_amount,
         currency="usd",
         success_url=success_url,
         cancel_url=cancel_url,
         metadata={
             "invoice_id": invoice_id,
-            "parent_id": parent["id"],
-            "access_token": access_token
+            "camper_id": camper["id"] if camper else None,
+            "access_token": access_token,
+            "base_amount": str(base_amount),
+            "fee_amount": str(fee_amount)
         }
     )
     
@@ -1916,7 +1965,10 @@ async def portal_create_payment(access_token: str, request: Request, invoice_id:
     payment_doc = {
         "id": str(uuid.uuid4()),
         "invoice_id": invoice_id,
-        "amount": amount,
+        "camper_id": camper["id"] if camper else None,
+        "amount": base_amount,
+        "fee_amount": fee_amount,
+        "include_fee": include_fee,
         "method": "stripe",
         "status": "pending",
         "stripe_session_id": session.session_id,
