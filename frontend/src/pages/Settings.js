@@ -50,14 +50,22 @@ import {
   ChevronDown,
   User,
   DollarSign,
-  Home
+  Home,
+  Zap,
+  Key,
+  FileText
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const TRIGGER_OPTIONS = [
-  { value: '', label: 'No automatic trigger' },
-  { value: 'status_accepted', label: 'When camper is Accepted' },
+  { value: '', label: 'No automatic trigger', auto: false },
+  { value: 'status_accepted', label: '⚡ When camper is Accepted', auto: true },
+  { value: 'status_paid_in_full', label: '⚡ When paid in full', auto: true },
+  { value: 'payment_reminder', label: '⚡ Payment reminder (auto)', auto: true },
+  { value: 'invoice_sent', label: '⚡ When invoice is sent', auto: true },
+  { value: 'manual', label: 'Manual send only', auto: false },
+];
   { value: 'status_paid_in_full', label: 'When paid in full' },
   { value: 'payment_reminder', label: 'Payment reminder' },
   { value: 'invoice_sent', label: 'When invoice is sent' },
