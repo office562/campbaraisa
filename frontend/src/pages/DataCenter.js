@@ -385,12 +385,12 @@ function DataCenter() {
                 </div>
                 <div>
                   <Label>Sort By</Label>
-                  <Select value={sortBy} onValueChange={setSortBy}>
+                  <Select value={sortBy || "none"} onValueChange={(v) => setSortBy(v === "none" ? "" : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {selectedColumns.map(col => (
                         <SelectItem key={col} value={col}>{getFieldLabel(col)}</SelectItem>
                       ))}
