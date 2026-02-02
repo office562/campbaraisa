@@ -659,20 +659,40 @@ async def update_parent(parent_id: str, data: ParentCreate, admin=Depends(get_cu
         raise HTTPException(status_code=404, detail="Parent not found")
     return await get_parent(parent_id, admin)
 
-# ==================== CAMPER ROUTES ====================
+# ==================== CAMPER ROUTES (Combined with Parent data) ====================
+
+def generate_portal_url(last_name: str) -> str:
+    """Generate unique portal URL: lastname + random string"""
+    clean_name = ''.join(c for c in last_name.lower() if c.isalnum())
+    random_suffix = secrets.token_urlsafe(8)
+    return f"{clean_name}-{random_suffix}"
 
 @api_router.post("/campers", response_model=CamperResponse)
 async def create_camper(data: CamperCreate, admin=Depends(get_current_admin)):
+    # Generate unique portal token based on last name
+    portal_token = generate_portal_url(data.last_name)
+    
     camper_doc = {
         "id": str(uuid.uuid4()),
         **data.model_dump(),
         "status": "Applied",
-        "room": None,
+        "portal_token": portal_token,
+        "groups": [],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.campers.insert_one(camper_doc)
     camper_doc.pop("_id", None)
     camper_doc["created_at"] = datetime.fromisoformat(camper_doc["created_at"])
+    
+    # Log activity
+    await log_activity(
+        entity_type="camper",
+        entity_id=camper_doc["id"],
+        action="created",
+        details={"name": f"{data.first_name} {data.last_name}"},
+        performed_by=admin.get("id")
+    )
+    
     return CamperResponse(**camper_doc)
 
 @api_router.get("/campers", response_model=List[CamperResponse])
