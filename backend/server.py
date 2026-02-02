@@ -220,11 +220,13 @@ class PaymentResponse(PaymentBase):
     stripe_session_id: Optional[str] = None
 
 class CommunicationBase(BaseModel):
-    parent_id: str
+    camper_id: str  # Changed from parent_id - now linked to camper
     type: str  # email, sms
     subject: Optional[str] = None
     message: str
     direction: str  # inbound, outbound
+    recipient_email: Optional[str] = None
+    recipient_phone: Optional[str] = None
 
 class CommunicationCreate(CommunicationBase):
     pass
