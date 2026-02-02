@@ -1066,6 +1066,137 @@ async def get_financial_summary(admin=Depends(get_current_admin)):
 
 # ==================== EMAIL TEMPLATE ROUTES ====================
 
+@api_router.get("/template-merge-fields")
+async def get_template_merge_fields(admin=Depends(get_current_admin)):
+    """Get available merge fields for templates"""
+    return TEMPLATE_MERGE_FIELDS
+
+@api_router.post("/templates/seed-defaults")
+async def seed_default_templates(admin=Depends(get_current_admin)):
+    """Seed default templates if none exist"""
+    existing_count = await db.email_templates.count_documents({})
+    if existing_count == 0:
+        for template in DEFAULT_TEMPLATES:
+            template_doc = {
+                "id": str(uuid.uuid4()),
+                **template
+            }
+            await db.email_templates.insert_one(template_doc)
+        return {"message": f"Created {len(DEFAULT_TEMPLATES)} default templates"}
+    return {"message": "Templates already exist"}
+
+@api_router.post("/templates/preview")
+async def preview_template(
+    template_id: str = Query(None),
+    camper_id: str = Query(None),
+    custom_subject: str = Query(None),
+    custom_body: str = Query(None),
+    admin=Depends(get_current_admin)
+):
+    """Preview a template with real data from a camper"""
+    # Get template content
+    if template_id:
+        template = await db.email_templates.find_one({"id": template_id}, {"_id": 0})
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        subject = template.get("subject", "")
+        body = template.get("body", "")
+    elif custom_subject is not None or custom_body is not None:
+        subject = custom_subject or ""
+        body = custom_body or ""
+    else:
+        raise HTTPException(status_code=400, detail="Either template_id or custom content required")
+    
+    # Get data for merge fields
+    merge_data = {}
+    
+    # Get settings for camp info
+    settings = await db.settings.find_one({}, {"_id": 0})
+    if settings:
+        merge_data["camp_name"] = settings.get("camp_name", "Camp Baraisa")
+        merge_data["camp_email"] = settings.get("camp_email", "")
+        merge_data["camp_phone"] = settings.get("camp_phone", "")
+    else:
+        merge_data["camp_name"] = "Camp Baraisa"
+        merge_data["camp_email"] = ""
+        merge_data["camp_phone"] = ""
+    
+    # Get camper and parent data if camper_id provided
+    if camper_id:
+        camper = await db.campers.find_one({"id": camper_id}, {"_id": 0})
+        if camper:
+            merge_data["camper_first_name"] = camper.get("first_name", "")
+            merge_data["camper_last_name"] = camper.get("last_name", "")
+            merge_data["camper_full_name"] = f"{camper.get('first_name', '')} {camper.get('last_name', '')}"
+            merge_data["camper_grade"] = camper.get("grade", "")
+            merge_data["camper_yeshiva"] = camper.get("yeshiva", "")
+            merge_data["camper_status"] = camper.get("status", "")
+            merge_data["due_date"] = camper.get("due_date", "")
+            
+            # Get parent data
+            parent = await db.parents.find_one({"id": camper.get("parent_id")}, {"_id": 0})
+            if parent:
+                merge_data["parent_father_title"] = parent.get("father_title", "Mr.")
+                merge_data["parent_father_first_name"] = parent.get("father_first_name", "")
+                merge_data["parent_father_last_name"] = parent.get("father_last_name", "")
+                merge_data["parent_father_cell"] = parent.get("father_cell", "")
+                merge_data["parent_mother_first_name"] = parent.get("mother_first_name", "")
+                merge_data["parent_mother_last_name"] = parent.get("mother_last_name", "")
+                merge_data["parent_mother_cell"] = parent.get("mother_cell", "")
+                merge_data["parent_email"] = parent.get("email", "")
+                merge_data["parent_address"] = parent.get("address", "")
+                merge_data["payment_link"] = f"{os.environ.get('FRONTEND_URL', '')}/portal/{parent.get('access_token', '')}"
+                merge_data["total_balance"] = f"${parent.get('total_balance', 0):,.2f}"
+                
+                # Calculate amount due from invoices
+                invoices = await db.invoices.find({"parent_id": parent["id"], "status": {"$ne": "paid"}}, {"_id": 0}).to_list(100)
+                amount_due = sum(inv.get("amount", 0) - inv.get("paid_amount", 0) for inv in invoices)
+                merge_data["amount_due"] = f"${amount_due:,.2f}"
+    else:
+        # Use sample data for preview
+        merge_data.update({
+            "camper_first_name": "Sample",
+            "camper_last_name": "Camper",
+            "camper_full_name": "Sample Camper",
+            "camper_grade": "11th Grade",
+            "camper_yeshiva": "Sample Yeshiva",
+            "camper_status": "Applied",
+            "parent_father_title": "Rabbi",
+            "parent_father_first_name": "John",
+            "parent_father_last_name": "Doe",
+            "parent_father_cell": "(555) 123-4567",
+            "parent_mother_first_name": "Jane",
+            "parent_mother_last_name": "Doe",
+            "parent_mother_cell": "(555) 987-6543",
+            "parent_email": "parent@example.com",
+            "parent_address": "123 Main St, City, State 12345",
+            "payment_link": "https://portal.example.com/abc123",
+            "amount_due": "$2,500.00",
+            "total_balance": "$5,000.00",
+            "due_date": "March 15, 2026"
+        })
+    
+    # Replace merge fields in subject and body
+    rendered_subject = subject
+    rendered_body = body
+    for key, value in merge_data.items():
+        placeholder = "{{" + key + "}}"
+        rendered_subject = rendered_subject.replace(placeholder, str(value) if value else "")
+        rendered_body = rendered_body.replace(placeholder, str(value) if value else "")
+    
+    return {
+        "subject": rendered_subject,
+        "body": rendered_body,
+        "merge_data": merge_data
+    }
+
+@api_router.delete("/email-templates/{template_id}")
+async def delete_email_template(template_id: str, admin=Depends(get_current_admin)):
+    result = await db.email_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"message": "Template deleted"}
+
 @api_router.post("/email-templates", response_model=EmailTemplateResponse)
 async def create_email_template(data: EmailTemplateCreate, admin=Depends(get_current_admin)):
     template_doc = {
@@ -1079,6 +1210,15 @@ async def create_email_template(data: EmailTemplateCreate, admin=Depends(get_cur
 @api_router.get("/email-templates", response_model=List[EmailTemplateResponse])
 async def get_email_templates(admin=Depends(get_current_admin)):
     templates = await db.email_templates.find({}, {"_id": 0}).to_list(100)
+    # Seed defaults if none exist
+    if len(templates) == 0:
+        for template in DEFAULT_TEMPLATES:
+            template_doc = {
+                "id": str(uuid.uuid4()),
+                **template
+            }
+            await db.email_templates.insert_one(template_doc)
+        templates = await db.email_templates.find({}, {"_id": 0}).to_list(100)
     return [EmailTemplateResponse(**t) for t in templates]
 
 @api_router.put("/email-templates/{template_id}", response_model=EmailTemplateResponse)
