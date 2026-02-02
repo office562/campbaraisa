@@ -12,16 +12,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { 
   User, 
@@ -33,7 +25,8 @@ import {
   AlertCircle,
   Phone,
   Mail,
-  Calendar
+  Calendar,
+  MapPin
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -78,7 +71,7 @@ const ParentPortal = () => {
           const response = await axios.get(`${API_URL}/api/stripe/status/${sessionId}`);
           if (response.data.payment_status === 'paid') {
             toast.success('Payment successful! Thank you.');
-            fetchData(); // Refresh data
+            fetchData();
           } else {
             toast.info('Payment is being processed...');
           }
@@ -89,7 +82,6 @@ const ParentPortal = () => {
         }
       };
       
-      // Poll a few times
       let attempts = 0;
       const pollInterval = setInterval(async () => {
         await checkPayment();
@@ -149,7 +141,12 @@ const ParentPortal = () => {
             <h2 className="font-heading text-2xl font-bold text-[#2D241E] mb-2">
               Link Not Found
             </h2>
-            <p className="text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium text-[#2D241E]">Contact Us:</p>
+              <p>848.BAR.AISA (227-2472)</p>
+              <p>office@campbaraisa.com</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -162,11 +159,11 @@ const ParentPortal = () => {
   const outstanding = totalBalance - totalPaid;
 
   return (
-    <div className="min-h-screen bg-[#F8F5F2]" data-testid="parent-portal">
-      {/* Hero Header */}
+    <div className="min-h-screen bg-[#F8F5F2] flex flex-col" data-testid="parent-portal">
+      {/* Hero Header with Bryce Canyon */}
       <div 
         className="relative h-48 md:h-64 bg-cover bg-center"
-        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1613487700156-bbde37f69132?crop=entropy&cs=srgb&fm=jpg&q=85)' }}
+        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1605999211498-1a6cf07fc10d?crop=entropy&cs=srgb&fm=jpg&q=85)' }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-[#2D241E] to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
@@ -181,12 +178,13 @@ const ParentPortal = () => {
                 Camp Baraisa
               </h1>
               <p className="text-white/90">The Ultimate Bein Hazmanim Experience</p>
+              <p className="text-white/70 text-sm italic">For the serious Ben Torah.</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6 md:p-10 -mt-6">
+      <div className="flex-1 max-w-4xl mx-auto w-full p-6 md:p-10 -mt-6">
         {/* Checking Payment Banner */}
         {checkingPayment && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-center gap-3">
@@ -205,16 +203,16 @@ const ParentPortal = () => {
                 </div>
                 <div>
                   <h2 className="font-heading text-2xl font-bold text-[#2D241E]">
-                    Welcome, {parent.first_name}!
+                    Welcome, {parent.father_first_name || parent.first_name || 'Parent'}!
                   </h2>
                   <p className="text-muted-foreground">{parent.email}</p>
                 </div>
               </div>
               <div className="flex gap-3">
-                {parent.phone && (
+                {(parent.father_cell || parent.phone) && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Phone className="w-4 h-4" />
-                    {parent.phone}
+                    {parent.father_cell || parent.phone}
                   </div>
                 )}
               </div>
@@ -254,11 +252,20 @@ const ParentPortal = () => {
               <div className="space-y-3">
                 {campers.map((camper) => (
                   <div key={camper.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{camper.first_name} {camper.last_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {camper.grade || 'No grade'} • {camper.yeshiva || 'No yeshiva'}
-                      </p>
+                    <div className="flex items-center gap-4">
+                      {camper.photo_url ? (
+                        <img src={camper.photo_url} alt={camper.first_name} className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-[#E85D04]/10 flex items-center justify-center">
+                          <User className="w-6 h-6 text-[#E85D04]" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{camper.first_name} {camper.last_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {camper.grade || 'No grade'} • {camper.yeshiva || 'No yeshiva'}
+                        </p>
+                      </div>
                     </div>
                     <Badge className={
                       camper.status === 'Paid in Full' ? 'bg-emerald-100 text-emerald-800' :
@@ -339,7 +346,7 @@ const ParentPortal = () => {
         </Card>
 
         {/* Payment History */}
-        <Card className="card-camp">
+        <Card className="card-camp mb-6">
           <CardHeader>
             <CardTitle className="font-heading text-xl flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-[#E85D04]" />
@@ -446,13 +453,47 @@ const ParentPortal = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* Footer */}
-        <div className="mt-10 text-center text-sm text-muted-foreground">
-          <p>Questions? Contact Camp Baraisa</p>
-          <p className="mt-1">© {new Date().getFullYear()} Camp Baraisa. All rights reserved.</p>
-        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-[#2D241E] text-white py-8 mt-auto">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/of4shzam_IMG_3441%202.jpg" 
+                alt="Camp Baraisa" 
+                className="w-12 h-12 rounded-lg bg-white p-1"
+              />
+              <div>
+                <h3 className="font-heading text-xl font-bold">Camp Baraisa</h3>
+                <p className="text-white/70 text-sm">The Ultimate Bein Hazmanim Experience</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-[#E85D04]" />
+                <span>848.BAR.AISA (227-2472)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-[#E85D04]" />
+                <a href="mailto:office@campbaraisa.com" className="hover:text-[#E85D04] transition-colors">
+                  office@campbaraisa.com
+                </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#E85D04]" />
+                <span>665 Princeton Ave Apt. 206, Lakewood, NJ 08701</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-white/20 mt-6 pt-6 text-center text-sm text-white/60">
+            <p>© {new Date().getFullYear()} Camp Baraisa. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
