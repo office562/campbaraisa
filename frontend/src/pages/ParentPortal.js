@@ -447,7 +447,7 @@ const ParentPortal = () => {
                   type="number"
                   step="0.01"
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  onChange={(e) => handleAmountChange(e.target.value)}
                   max={(selectedInvoice?.amount || 0) - (selectedInvoice?.paid_amount || 0)}
                   data-testid="payment-amount-input"
                 />
@@ -455,6 +455,32 @@ const ParentPortal = () => {
                   You can pay in full or make a partial payment
                 </p>
               </div>
+              
+              {/* Credit Card Fee Notice */}
+              {feeInfo && parseFloat(paymentAmount) > 0 && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm font-medium text-amber-800 mb-2">
+                    Credit Card Processing Fee (3.5%)
+                  </p>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-amber-700">Payment Amount:</span>
+                      <span className="font-medium">${feeInfo.base_amount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-amber-700">Processing Fee (3.5%):</span>
+                      <span className="font-medium">+ ${feeInfo.fee_amount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-amber-200 pt-1 mt-1">
+                      <span className="font-medium text-amber-900">Total Charge:</span>
+                      <span className="font-bold text-amber-900">${feeInfo.total_with_fee.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-2">
+                    A 3.5% fee is added to all credit card payments to cover processing costs.
+                  </p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button
@@ -468,7 +494,7 @@ const ParentPortal = () => {
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Pay ${parseFloat(paymentAmount || 0).toFixed(2)}
+                    Pay ${feeInfo ? feeInfo.total_with_fee.toFixed(2) : parseFloat(paymentAmount || 0).toFixed(2)}
                   </>
                 )}
               </Button>
