@@ -779,7 +779,12 @@ async def update_camper(camper_id: str, data: CamperBase, admin=Depends(get_curr
     return await get_camper(camper_id, admin)
 
 @api_router.put("/campers/{camper_id}/status")
-async def update_camper_status(camper_id: str, status: str = Query(...), admin=Depends(get_current_admin)):
+async def update_camper_status(
+    camper_id: str, 
+    status: str = Query(...), 
+    skip_email: bool = Query(False),
+    admin=Depends(get_current_admin)
+):
     if status not in KANBAN_STATUSES:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {KANBAN_STATUSES}")
     
@@ -799,77 +804,195 @@ async def update_camper_status(camper_id: str, status: str = Query(...), admin=D
         performed_by=admin.get("id")
     )
     
-    # Trigger automated emails based on status change (parent info now in camper)
-    if status == "Accepted" and old_status != "Accepted":
-        # Log acceptance email
-        comm_doc = {
-            "id": str(uuid.uuid4()),
-            "camper_id": camper_id,
-            "type": "email",
-            "subject": f"Welcome to Camp Baraisa - {camper['first_name']} Accepted!",
-            "message": f"""We've spoken to your son's Rabbeim & have heard great things.
-
-We are very excited to have {camper['first_name']} join us for this upcoming Summer 2026 Bez"H.
-
-We will I"yH be sending out a packing list & additional info which will be sent out closer to the summer.
-
-Flight & Billing info will be sent in separate emails.
-
-Thank you and looking forward!""",
-            "direction": "outbound",
-            "status": "pending",
-            "recipient_email": camper.get("parent_email"),
-            "recipient_phone": camper.get("father_cell") or camper.get("mother_cell"),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.communications.insert_one(comm_doc)
-        
-        # Log activity
-        await log_activity(
-            entity_type="camper",
-            entity_id=camper_id,
-            action="email_queued",
-            details={"type": "acceptance", "email_id": comm_doc["id"]},
-            performed_by=admin.get("id")
-        )
+    # Map status to trigger name
+    status_trigger_map = {
+        "Accepted": "status_accepted",
+        "Paid in Full": "status_paid_in_full",
+        "Invoice Sent": "invoice_sent"
+    }
     
-    elif status == "Paid in Full" and old_status != "Paid in Full":
-        # Log paid in full email
-        comm_doc = {
-            "id": str(uuid.uuid4()),
-            "camper_id": camper_id,
-            "type": "email",
-            "subject": f"Camp Baraisa - Balance Paid in Full",
-            "message": f"""Thank you! Your balance for {camper['first_name']} {camper['last_name']}'s enrollment has been paid in full.
-
-We look forward to seeing {camper['first_name']} this summer!
-
-Camp Baraisa Team""",
-            "direction": "outbound",
-            "status": "pending",
-            "recipient_email": camper.get("parent_email"),
-            "recipient_phone": camper.get("father_cell") or camper.get("mother_cell"),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.communications.insert_one(comm_doc)
-        
-        # Log activity
-        await log_activity(
-            entity_type="camper",
-            entity_id=camper_id,
-            action="email_queued",
-            details={"type": "paid_in_full", "email_id": comm_doc["id"]},
-            performed_by=admin.get("id")
-        )
+    email_triggered = False
+    email_content = None
     
-    return {"message": f"Status updated to {status}", "email_triggered": status in ["Accepted", "Paid in Full"]}
+    # Check if there's a template for this status change
+    if status in status_trigger_map and old_status != status and not skip_email:
+        trigger_name = status_trigger_map[status]
+        template = await db.email_templates.find_one({"trigger": trigger_name}, {"_id": 0})
+        
+        if template:
+            # Render template with camper data
+            subject = template.get("subject", "")
+            body = template.get("body", "")
+            
+            # Replace merge fields
+            merge_data = {
+                "camper_first_name": camper.get("first_name", ""),
+                "camper_last_name": camper.get("last_name", ""),
+                "camper_full_name": f"{camper.get('first_name', '')} {camper.get('last_name', '')}",
+                "parent_father_first_name": camper.get("father_first_name", ""),
+                "parent_father_last_name": camper.get("father_last_name", ""),
+                "parent_email": camper.get("parent_email", ""),
+                "parent_father_cell": camper.get("father_cell", ""),
+                "status": status
+            }
+            
+            for key, value in merge_data.items():
+                subject = subject.replace("{{" + key + "}}", str(value))
+                body = body.replace("{{" + key + "}}", str(value))
+            
+            comm_doc = {
+                "id": str(uuid.uuid4()),
+                "camper_id": camper_id,
+                "type": template.get("template_type", "email"),
+                "subject": subject,
+                "message": body,
+                "direction": "outbound",
+                "status": "pending",
+                "recipient_email": camper.get("parent_email"),
+                "recipient_phone": camper.get("father_cell") or camper.get("mother_cell"),
+                "template_id": template.get("id"),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.communications.insert_one(comm_doc)
+            
+            await log_activity(
+                entity_type="camper",
+                entity_id=camper_id,
+                action="email_queued",
+                details={"type": trigger_name, "email_id": comm_doc["id"], "template_name": template.get("name")},
+                performed_by=admin.get("id")
+            )
+            
+            email_triggered = True
+            email_content = {"subject": subject, "body": body}
+    
+    return {
+        "message": f"Status updated to {status}", 
+        "email_triggered": email_triggered,
+        "email_content": email_content
+    }
+
+# Get email preview for status change (used by confirmation popup)
+@api_router.get("/campers/{camper_id}/email-preview")
+async def get_status_email_preview(
+    camper_id: str, 
+    new_status: str = Query(...),
+    admin=Depends(get_current_admin)
+):
+    """Get preview of email that would be sent for a status change"""
+    camper = await db.campers.find_one({"id": camper_id}, {"_id": 0})
+    if not camper:
+        raise HTTPException(status_code=404, detail="Camper not found")
+    
+    status_trigger_map = {
+        "Accepted": "status_accepted",
+        "Paid in Full": "status_paid_in_full",
+        "Invoice Sent": "invoice_sent"
+    }
+    
+    if new_status not in status_trigger_map:
+        return {"has_template": False, "subject": "", "body": ""}
+    
+    trigger_name = status_trigger_map[new_status]
+    template = await db.email_templates.find_one({"trigger": trigger_name}, {"_id": 0})
+    
+    if not template:
+        return {"has_template": False, "subject": "", "body": ""}
+    
+    # Render template with camper data
+    subject = template.get("subject", "")
+    body = template.get("body", "")
+    
+    merge_data = {
+        "camper_first_name": camper.get("first_name", ""),
+        "camper_last_name": camper.get("last_name", ""),
+        "camper_full_name": f"{camper.get('first_name', '')} {camper.get('last_name', '')}",
+        "parent_father_first_name": camper.get("father_first_name", ""),
+        "parent_father_last_name": camper.get("father_last_name", ""),
+        "parent_email": camper.get("parent_email", ""),
+        "parent_father_cell": camper.get("father_cell", ""),
+        "status": new_status
+    }
+    
+    for key, value in merge_data.items():
+        subject = subject.replace("{{" + key + "}}", str(value))
+        body = body.replace("{{" + key + "}}", str(value))
+    
+    return {
+        "has_template": True,
+        "template_name": template.get("name", ""),
+        "template_type": template.get("template_type", "email"),
+        "subject": subject,
+        "body": body,
+        "recipient_email": camper.get("parent_email"),
+        "recipient_phone": camper.get("father_cell") or camper.get("mother_cell")
+    }
 
 @api_router.delete("/campers/{camper_id}")
 async def delete_camper(camper_id: str, admin=Depends(get_current_admin)):
-    result = await db.campers.delete_one({"id": camper_id})
-    if result.deleted_count == 0:
+    """Soft delete - move to trash"""
+    camper = await db.campers.find_one({"id": camper_id}, {"_id": 0})
+    if not camper:
         raise HTTPException(status_code=404, detail="Camper not found")
-    return {"message": "Camper deleted"}
+    
+    # Move to trash collection
+    camper["deleted_at"] = datetime.now(timezone.utc).isoformat()
+    camper["deleted_by"] = admin.get("id")
+    await db.campers_trash.insert_one(camper)
+    
+    # Remove from campers
+    await db.campers.delete_one({"id": camper_id})
+    
+    # Log activity
+    await log_activity(
+        entity_type="camper",
+        entity_id=camper_id,
+        action="camper_deleted",
+        details={"camper_name": f"{camper.get('first_name')} {camper.get('last_name')}"},
+        performed_by=admin.get("id")
+    )
+    
+    return {"message": "Camper moved to trash"}
+
+@api_router.get("/campers/trash/list")
+async def get_trash(admin=Depends(get_current_admin)):
+    """Get all campers in trash"""
+    trash = await db.campers_trash.find({}, {"_id": 0}).sort("deleted_at", -1).to_list(1000)
+    return trash
+
+@api_router.post("/campers/trash/{camper_id}/restore")
+async def restore_camper(camper_id: str, admin=Depends(get_current_admin)):
+    """Restore camper from trash"""
+    camper = await db.campers_trash.find_one({"id": camper_id}, {"_id": 0})
+    if not camper:
+        raise HTTPException(status_code=404, detail="Camper not found in trash")
+    
+    # Remove trash metadata
+    camper.pop("deleted_at", None)
+    camper.pop("deleted_by", None)
+    
+    # Restore to campers
+    await db.campers.insert_one(camper)
+    await db.campers_trash.delete_one({"id": camper_id})
+    
+    # Log activity
+    await log_activity(
+        entity_type="camper",
+        entity_id=camper_id,
+        action="camper_restored",
+        details={"camper_name": f"{camper.get('first_name')} {camper.get('last_name')}"},
+        performed_by=admin.get("id")
+    )
+    
+    return {"message": "Camper restored"}
+
+@api_router.delete("/campers/trash/{camper_id}/permanent")
+async def permanent_delete_camper(camper_id: str, admin=Depends(get_current_admin)):
+    """Permanently delete camper from trash"""
+    result = await db.campers_trash.delete_one({"id": camper_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Camper not found in trash")
+    return {"message": "Camper permanently deleted"}
 
 # ==================== KANBAN ROUTES ====================
 
