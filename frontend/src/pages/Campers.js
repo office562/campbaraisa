@@ -37,8 +37,6 @@ import {
   Plus, 
   Search, 
   Filter, 
-  Eye,
-  UserPlus,
   GraduationCap
 } from 'lucide-react';
 
