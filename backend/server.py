@@ -113,10 +113,22 @@ class CamperResponse(CamperBase):
     created_at: datetime
 
 class ParentBase(BaseModel):
-    first_name: str
-    last_name: str
+    # Primary Email
     email: EmailStr
-    phone: Optional[str] = None
+    # Father Info
+    father_title: Optional[str] = None  # Rabbi, Mr, etc.
+    father_first_name: Optional[str] = None
+    father_last_name: Optional[str] = None
+    father_cell: Optional[str] = None
+    # Mother Info
+    mother_first_name: Optional[str] = None
+    mother_last_name: Optional[str] = None
+    mother_cell: Optional[str] = None
+    # For backwards compatibility and display
+    first_name: Optional[str] = None  # Will use father_first_name if not set
+    last_name: Optional[str] = None   # Will use father_last_name if not set
+    phone: Optional[str] = None       # Will use father_cell if not set
+    # Address (from camper but can store here too)
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
