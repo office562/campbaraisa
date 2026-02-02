@@ -4,10 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus, Mail, Phone, MapPin } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -54,9 +54,9 @@ const Login = () => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 relative"
+      className="min-h-screen flex flex-col items-center justify-center p-4 relative"
       style={{
-        backgroundImage: 'url(https://images.unsplash.com/photo-1558571212-eae6771b7baf?crop=entropy&cs=srgb&fm=jpg&q=85)',
+        backgroundImage: 'url(https://images.unsplash.com/photo-1605999211498-1a6cf07fc10d?crop=entropy&cs=srgb&fm=jpg&q=85)',
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
@@ -210,7 +210,36 @@ const Login = () => {
               </TabsContent>
             </Tabs>
           </CardContent>
+          <CardFooter className="flex flex-col border-t pt-4">
+            <p className="text-sm text-muted-foreground text-center mb-3">
+              Not an admin? Looking to register for camp?
+            </p>
+            <div className="bg-[#F8F5F2] rounded-lg p-4 w-full">
+              <p className="text-sm font-medium text-[#2D241E] mb-2">Contact Camp Baraisa:</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-[#E85D04]" />
+                  <span>848.BAR.AISA (227-2472)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-[#E85D04]" />
+                  <a href="mailto:office@campbaraisa.com" className="hover:text-[#E85D04] transition-colors">
+                    office@campbaraisa.com
+                  </a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#E85D04]" />
+                  <span className="text-xs">665 Princeton Ave Apt. 206, Lakewood, NJ 08701</span>
+                </div>
+              </div>
+            </div>
+          </CardFooter>
         </Card>
+        
+        {/* Footer */}
+        <p className="text-center text-white/60 text-sm mt-6">
+          © {new Date().getFullYear()} Camp Baraisa. All rights reserved.
+        </p>
       </div>
     </div>
   );
