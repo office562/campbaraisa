@@ -108,17 +108,36 @@ const Financial = () => {
     }
   };
 
-  // Prepare chart data
-  const expenseChartData = summary?.expense_by_category 
-    ? Object.entries(summary.expense_by_category).map(([name, value]) => ({ name, value }))
-    : [];
-
-  const paymentMethodData = summary?.payment_by_method
-    ? Object.entries(summary.payment_by_method).map(([name, value]) => ({ 
+  // Prepare chart data - using traditional loops to avoid babel plugin issues
+  const getExpenseChartData = () => {
+    if (!summary || !summary.expense_by_category) return [];
+    const result = [];
+    const keys = Object.keys(summary.expense_by_category);
+    for (let i = 0; i < keys.length; i++) {
+      const name = keys[i];
+      const value = summary.expense_by_category[name];
+      result.push({ name, value });
+    }
+    return result;
+  };
+  
+  const getPaymentMethodData = () => {
+    if (!summary || !summary.payment_by_method) return [];
+    const result = [];
+    const keys = Object.keys(summary.payment_by_method);
+    for (let i = 0; i < keys.length; i++) {
+      const name = keys[i];
+      const value = summary.payment_by_method[name];
+      result.push({ 
         name: name.charAt(0).toUpperCase() + name.slice(1), 
         value 
-      }))
-    : [];
+      });
+    }
+    return result;
+  };
+  
+  const expenseChartData = getExpenseChartData();
+  const paymentMethodData = getPaymentMethodData();
 
   if (loading) {
     return (
