@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,18 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { 
   Settings as SettingsIcon, 
@@ -29,35 +42,72 @@ import {
   Plus,
   Edit,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  Trash2,
+  MessageSquare,
+  Code,
+  ChevronDown,
+  User,
+  DollarSign,
+  Home
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+const TRIGGER_OPTIONS = [
+  { value: '', label: 'No automatic trigger' },
+  { value: 'status_accepted', label: 'When camper is Accepted' },
+  { value: 'status_paid_in_full', label: 'When paid in full' },
+  { value: 'payment_reminder', label: 'Payment reminder' },
+  { value: 'invoice_sent', label: 'When invoice is sent' },
+  { value: 'manual', label: 'Manual send only' },
+];
+
+const CATEGORY_ICONS = {
+  parent: User,
+  camper: User,
+  billing: DollarSign,
+  camp: Home,
+};
 
 const Settings = () => {
   const { token, admin } = useAuth();
   const [settings, setSettings] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [pendingAdmins, setPendingAdmins] = useState([]);
+  const [mergeFields, setMergeFields] = useState({});
+  const [campers, setCampers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [newTemplate, setNewTemplate] = useState({
-    name: '', subject: '', body: '', trigger: ''
+    name: '', subject: '', body: '', trigger: '', template_type: 'email'
   });
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewCamperId, setPreviewCamperId] = useState('');
+  const [activeField, setActiveField] = useState('body');
+  
+  const subjectRef = useRef(null);
+  const bodyRef = useRef(null);
 
   const fetchData = async () => {
     try {
-      const [settingsRes, templatesRes, pendingRes] = await Promise.all([
+      const [settingsRes, templatesRes, pendingRes, fieldsRes, campersRes] = await Promise.all([
         axios.get(`${API_URL}/api/settings`, { headers: { Authorization: `Bearer ${token}` }}),
         axios.get(`${API_URL}/api/email-templates`, { headers: { Authorization: `Bearer ${token}` }}),
-        axios.get(`${API_URL}/api/auth/pending`, { headers: { Authorization: `Bearer ${token}` }})
+        axios.get(`${API_URL}/api/auth/pending`, { headers: { Authorization: `Bearer ${token}` }}),
+        axios.get(`${API_URL}/api/template-merge-fields`, { headers: { Authorization: `Bearer ${token}` }}),
+        axios.get(`${API_URL}/api/campers`, { headers: { Authorization: `Bearer ${token}` }})
       ]);
       setSettings(settingsRes.data);
       setTemplates(templatesRes.data);
       setPendingAdmins(pendingRes.data);
+      setMergeFields(fieldsRes.data);
+      setCampers(campersRes.data);
     } catch (error) {
       toast.error('Failed to fetch settings');
     } finally {
@@ -99,10 +149,48 @@ const Settings = () => {
       }
       setShowAddTemplate(false);
       setEditingTemplate(null);
-      setNewTemplate({ name: '', subject: '', body: '', trigger: '' });
+      setNewTemplate({ name: '', subject: '', body: '', trigger: '', template_type: 'email' });
       fetchData();
     } catch (error) {
       toast.error('Failed to save template');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/email-templates/${templateId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Template deleted');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete template');
+    }
+  };
+
+  const handlePreviewTemplate = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (editingTemplate?.id) {
+        params.append('template_id', editingTemplate.id);
+      } else {
+        params.append('custom_subject', newTemplate.subject);
+        params.append('custom_body', newTemplate.body);
+      }
+      if (previewCamperId) {
+        params.append('camper_id', previewCamperId);
+      }
+      
+      const response = await axios.post(
+        `${API_URL}/api/templates/preview?${params.toString()}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      setPreviewData(response.data);
+      setShowPreview(true);
+    } catch (error) {
+      toast.error('Failed to preview template');
     }
   };
 
@@ -124,9 +212,22 @@ const Settings = () => {
       name: template.name,
       subject: template.subject,
       body: template.body,
-      trigger: template.trigger || ''
+      trigger: template.trigger || '',
+      template_type: template.template_type || 'email'
     });
     setShowAddTemplate(true);
+  };
+
+  const insertMergeField = (field) => {
+    const targetField = activeField;
+    const currentValue = newTemplate[targetField] || '';
+    
+    // Get cursor position if available
+    const ref = targetField === 'subject' ? subjectRef : bodyRef;
+    const cursorPos = ref.current?.selectionStart || currentValue.length;
+    
+    const newValue = currentValue.slice(0, cursorPos) + field + currentValue.slice(cursorPos);
+    setNewTemplate({ ...newTemplate, [targetField]: newValue });
   };
 
   if (loading) {
@@ -164,7 +265,7 @@ const Settings = () => {
         <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-4 gap-4">
           <TabsTrigger value="general" data-testid="tab-general">General</TabsTrigger>
           <TabsTrigger value="integrations" data-testid="tab-integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="emails" data-testid="tab-emails">Email Templates</TabsTrigger>
+          <TabsTrigger value="emails" data-testid="tab-emails">Templates</TabsTrigger>
           <TabsTrigger value="admins" data-testid="tab-admins">Admins</TabsTrigger>
         </TabsList>
 
@@ -308,19 +409,20 @@ const Settings = () => {
           </div>
         </TabsContent>
 
-        {/* Email Templates */}
+        {/* Email/SMS Templates */}
         <TabsContent value="emails">
           <Card className="card-camp">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="font-heading text-xl">Email Templates</CardTitle>
-                <CardDescription>Customize automated email content</CardDescription>
+                <CardTitle className="font-heading text-xl">Email & SMS Templates</CardTitle>
+                <CardDescription>Create templates with dynamic merge fields for personalized communications</CardDescription>
               </div>
               <Dialog open={showAddTemplate} onOpenChange={(open) => {
                 setShowAddTemplate(open);
                 if (!open) {
                   setEditingTemplate(null);
-                  setNewTemplate({ name: '', subject: '', body: '', trigger: '' });
+                  setNewTemplate({ name: '', subject: '', body: '', trigger: '', template_type: 'email' });
+                  setPreviewData(null);
                 }
               }}>
                 <DialogTrigger asChild>
@@ -329,90 +431,261 @@ const Settings = () => {
                     Add Template
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                   <DialogHeader>
                     <DialogTitle className="font-heading text-2xl">
                       {editingTemplate ? 'Edit Template' : 'Create Template'}
                     </DialogTitle>
+                    <DialogDescription>
+                      Use merge fields to personalize your messages. Click on a field to insert it.
+                    </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleSaveTemplate} className="space-y-4">
-                    <div>
-                      <Label>Template Name</Label>
-                      <Input
-                        value={newTemplate.name}
-                        onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
-                        placeholder="e.g., Acceptance Email"
-                        required
-                        data-testid="template-name"
-                      />
-                    </div>
-                    <div>
-                      <Label>Trigger (Optional)</Label>
-                      <Input
-                        value={newTemplate.trigger}
-                        onChange={(e) => setNewTemplate({...newTemplate, trigger: e.target.value})}
-                        placeholder="e.g., status_accepted"
-                      />
-                    </div>
-                    <div>
-                      <Label>Subject</Label>
-                      <Input
-                        value={newTemplate.subject}
-                        onChange={(e) => setNewTemplate({...newTemplate, subject: e.target.value})}
-                        placeholder="Email subject line"
-                        required
-                        data-testid="template-subject"
-                      />
-                    </div>
-                    <div>
-                      <Label>Body</Label>
-                      <Textarea
-                        value={newTemplate.body}
-                        onChange={(e) => setNewTemplate({...newTemplate, body: e.target.value})}
-                        placeholder="Email content..."
-                        rows={8}
-                        required
-                        data-testid="template-body"
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit" className="btn-camp-primary" data-testid="save-template-btn">
-                        {editingTemplate ? 'Update Template' : 'Create Template'}
-                      </Button>
-                    </DialogFooter>
-                  </form>
+                  
+                  <div className="flex-1 overflow-y-auto">
+                    <form onSubmit={handleSaveTemplate} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Template Name</Label>
+                          <Input
+                            value={newTemplate.name}
+                            onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
+                            placeholder="e.g., Acceptance Email"
+                            required
+                            data-testid="template-name"
+                          />
+                        </div>
+                        <div>
+                          <Label>Type</Label>
+                          <Select
+                            value={newTemplate.template_type}
+                            onValueChange={(value) => setNewTemplate({...newTemplate, template_type: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="email">
+                                <div className="flex items-center gap-2">
+                                  <Mail className="w-4 h-4" />
+                                  Email
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="sms">
+                                <div className="flex items-center gap-2">
+                                  <MessageSquare className="w-4 h-4" />
+                                  SMS
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label>Automatic Trigger</Label>
+                        <Select
+                          value={newTemplate.trigger}
+                          onValueChange={(value) => setNewTemplate({...newTemplate, trigger: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select when to send automatically" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TRIGGER_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Merge Fields Toolbar */}
+                      <div className="border rounded-lg p-3 bg-gray-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Code className="w-4 h-4 text-[#E85D04]" />
+                          <span className="text-sm font-medium">Insert Merge Field</span>
+                          <span className="text-xs text-muted-foreground">(Click to add at cursor position)</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(mergeFields).map(([category, fields]) => {
+                            const IconComponent = CATEGORY_ICONS[category] || Code;
+                            return (
+                              <Popover key={category}>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" size="sm" className="h-8">
+                                    <IconComponent className="w-3 h-3 mr-1" />
+                                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                                    <ChevronDown className="w-3 h-3 ml-1" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-2" align="start">
+                                  <ScrollArea className="h-48">
+                                    <div className="space-y-1">
+                                      {fields.map((f) => (
+                                        <Button
+                                          key={f.field}
+                                          variant="ghost"
+                                          size="sm"
+                                          className="w-full justify-start text-xs h-auto py-2"
+                                          onClick={() => insertMergeField(f.field)}
+                                        >
+                                          <div className="text-left">
+                                            <div className="font-mono text-[#E85D04]">{f.field}</div>
+                                            <div className="text-muted-foreground">{f.label}</div>
+                                          </div>
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </ScrollArea>
+                                </PopoverContent>
+                              </Popover>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {newTemplate.template_type === 'email' && (
+                        <div>
+                          <Label>Subject Line</Label>
+                          <Input
+                            ref={subjectRef}
+                            value={newTemplate.subject}
+                            onChange={(e) => setNewTemplate({...newTemplate, subject: e.target.value})}
+                            onFocus={() => setActiveField('subject')}
+                            placeholder="Email subject with {{merge_fields}}"
+                            required
+                            data-testid="template-subject"
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                      )}
+                      
+                      <div>
+                        <Label>{newTemplate.template_type === 'sms' ? 'Message' : 'Body'}</Label>
+                        <Textarea
+                          ref={bodyRef}
+                          value={newTemplate.body}
+                          onChange={(e) => setNewTemplate({...newTemplate, body: e.target.value})}
+                          onFocus={() => setActiveField('body')}
+                          placeholder="Write your message with {{merge_fields}}..."
+                          rows={newTemplate.template_type === 'sms' ? 4 : 12}
+                          required
+                          data-testid="template-body"
+                          className="font-mono text-sm"
+                        />
+                        {newTemplate.template_type === 'sms' && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {newTemplate.body.length}/160 characters (SMS limit per segment)
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Preview Section */}
+                      <div className="border rounded-lg p-4 bg-[#E85D04]/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-[#E85D04]" />
+                            <span className="font-medium">Preview</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Select value={previewCamperId} onValueChange={setPreviewCamperId}>
+                              <SelectTrigger className="w-48 h-8">
+                                <SelectValue placeholder="Select camper for preview" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">Sample Data</SelectItem>
+                                {campers.map(c => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.first_name} {c.last_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handlePreviewTemplate}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              Preview
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {previewData && (
+                          <div className="bg-white rounded-lg p-4 space-y-2">
+                            {newTemplate.template_type === 'email' && (
+                              <div>
+                                <span className="text-xs text-muted-foreground">Subject:</span>
+                                <p className="font-medium">{previewData.subject}</p>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-xs text-muted-foreground">
+                                {newTemplate.template_type === 'sms' ? 'Message:' : 'Body:'}
+                              </span>
+                              <div className="whitespace-pre-wrap text-sm mt-1 p-3 bg-gray-50 rounded">
+                                {previewData.body}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <DialogFooter className="gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowAddTemplate(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="btn-camp-primary" data-testid="save-template-btn">
+                          {editingTemplate ? 'Update Template' : 'Create Template'}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </div>
                 </DialogContent>
               </Dialog>
             </CardHeader>
             <CardContent>
-              {templates.length > 0 ? (
-                <div className="space-y-3">
-                  {templates.map((template) => (
-                    <div key={template.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{template.name}</p>
-                        <p className="text-sm text-muted-foreground">{template.subject}</p>
-                        {template.trigger && (
-                          <Badge variant="outline" className="mt-1">{template.trigger}</Badge>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditTemplate(template)}
-                        data-testid={`edit-template-${template.id}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Mail className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <p>No email templates created yet</p>
-                </div>
-              )}
+              {/* Filter by type */}
+              <Tabs defaultValue="all" className="mb-4">
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="email">
+                    <Mail className="w-3 h-3 mr-1" />
+                    Email
+                  </TabsTrigger>
+                  <TabsTrigger value="sms">
+                    <MessageSquare className="w-3 h-3 mr-1" />
+                    SMS
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="all" className="mt-4">
+                  <TemplateList 
+                    templates={templates} 
+                    onEdit={openEditTemplate} 
+                    onDelete={handleDeleteTemplate}
+                  />
+                </TabsContent>
+                <TabsContent value="email" className="mt-4">
+                  <TemplateList 
+                    templates={templates.filter(t => t.template_type === 'email' || !t.template_type)} 
+                    onEdit={openEditTemplate} 
+                    onDelete={handleDeleteTemplate}
+                  />
+                </TabsContent>
+                <TabsContent value="sms" className="mt-4">
+                  <TemplateList 
+                    templates={templates.filter(t => t.template_type === 'sms')} 
+                    onEdit={openEditTemplate} 
+                    onDelete={handleDeleteTemplate}
+                  />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
@@ -478,6 +751,72 @@ const Settings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+};
+
+// Template List Component
+const TemplateList = ({ templates, onEdit, onDelete }) => {
+  if (templates.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Mail className="w-12 h-12 mx-auto mb-4 opacity-30" />
+        <p>No templates in this category</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {templates.map((template) => (
+        <div key={template.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              {template.template_type === 'sms' ? (
+                <MessageSquare className="w-4 h-4 text-blue-500" />
+              ) : (
+                <Mail className="w-4 h-4 text-purple-500" />
+              )}
+              <p className="font-medium">{template.name}</p>
+            </div>
+            {template.subject && (
+              <p className="text-sm text-muted-foreground mt-1">{template.subject}</p>
+            )}
+            <div className="flex items-center gap-2 mt-2">
+              {template.trigger && (
+                <Badge variant="outline" className="text-xs">
+                  {TRIGGER_OPTIONS.find(t => t.value === template.trigger)?.label || template.trigger}
+                </Badge>
+              )}
+              <Badge 
+                variant="secondary" 
+                className={template.template_type === 'sms' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}
+              >
+                {template.template_type === 'sms' ? 'SMS' : 'Email'}
+              </Badge>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(template)}
+              data-testid={`edit-template-${template.id}`}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={() => onDelete(template.id)}
+              data-testid={`delete-template-${template.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
