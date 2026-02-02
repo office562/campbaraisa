@@ -457,6 +457,52 @@ function CamperDetail() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Photo Card */}
+          <Card className="card-camp">
+            <CardHeader>
+              <CardTitle className="font-heading text-xl flex items-center gap-2">
+                <Camera className="w-5 h-5 text-[#E85D04]" />
+                Photo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {camper.photo_url ? (
+                <div className="space-y-3">
+                  <img 
+                    src={camper.photo_url} 
+                    alt={camper.first_name + ' ' + camper.last_name}
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <div>
+                    <Label className="text-xs">Photo URL</Label>
+                    <Input
+                      value={camper.photo_url || ''}
+                      onChange={function(e) { setCamper({...camper, photo_url: e.target.value}); }}
+                      placeholder="https://..."
+                      className="text-xs"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="w-full h-32 bg-gray-100 rounded-lg flex flex-col items-center justify-center">
+                    <User className="w-12 h-12 text-gray-300" />
+                    <p className="text-xs text-muted-foreground mt-2">No photo uploaded</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Photo URL</Label>
+                    <Input
+                      value={camper.photo_url || ''}
+                      onChange={function(e) { setCamper({...camper, photo_url: e.target.value}); }}
+                      placeholder="Paste image URL here..."
+                      className="text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Parent Info */}
           {parent && (
             <Card className="card-camp">
@@ -471,12 +517,29 @@ function CamperDetail() {
                     {parent.father_first_name || parent.first_name} {parent.father_last_name || parent.last_name}
                   </p>
                   {(parent.father_cell || parent.phone) && (
-                    <div className="flex items-center gap-2 text-sm mt-1">
-                      <Phone className="w-3 h-3 text-muted-foreground" />
-                      <a href={'tel:' + (parent.father_cell || parent.phone)} className="hover:underline">
-                        {parent.father_cell || parent.phone}
-                      </a>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs hover:bg-green-50 hover:text-green-700"
+                        onClick={function() { window.location.href = 'tel:' + (parent.father_cell || parent.phone); }}
+                      >
+                        <Phone className="w-3 h-3 mr-1" />
+                        Call
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs hover:bg-blue-50 hover:text-blue-700"
+                        onClick={function() { window.location.href = 'sms:' + (parent.father_cell || parent.phone); }}
+                      >
+                        <MessageSquare className="w-3 h-3 mr-1" />
+                        SMS
+                      </Button>
                     </div>
+                  )}
+                  {(parent.father_cell || parent.phone) && (
+                    <p className="text-xs text-muted-foreground mt-1">{parent.father_cell || parent.phone}</p>
                   )}
                 </div>
 
