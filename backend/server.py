@@ -98,6 +98,8 @@ class CamperBase(BaseModel):
     rules_signature: Optional[str] = None
     waiver_agreed: bool = False
     waiver_signature: Optional[str] = None
+    # Due Date (set after acceptance)
+    due_date: Optional[str] = None
     # Notes
     notes: Optional[str] = None
 
