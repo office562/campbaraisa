@@ -1078,6 +1078,156 @@ async def unassign_camper_from_room(room_id: str, camper_id: str, admin=Depends(
     
     return {"message": "Camper unassigned from room"}
 
+# ==================== GROUPS ROUTES ====================
+
+@api_router.post("/groups", response_model=GroupResponse)
+async def create_group(data: GroupCreate, admin=Depends(get_current_admin)):
+    group_doc = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "assigned_campers": [],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.groups.insert_one(group_doc)
+    group_doc.pop("_id", None)
+    group_doc["created_at"] = datetime.fromisoformat(group_doc["created_at"])
+    return GroupResponse(**group_doc)
+
+@api_router.get("/groups", response_model=List[GroupResponse])
+async def get_groups(type: Optional[str] = None, admin=Depends(get_current_admin)):
+    query = {}
+    if type:
+        query["type"] = type
+    groups = await db.groups.find(query, {"_id": 0}).to_list(500)
+    for g in groups:
+        if g.get("created_at"):
+            g["created_at"] = datetime.fromisoformat(g["created_at"]) if isinstance(g["created_at"], str) else g["created_at"]
+    return [GroupResponse(**g) for g in groups]
+
+@api_router.get("/groups/{group_id}", response_model=GroupResponse)
+async def get_group(group_id: str, admin=Depends(get_current_admin)):
+    group = await db.groups.find_one({"id": group_id}, {"_id": 0})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if group.get("created_at"):
+        group["created_at"] = datetime.fromisoformat(group["created_at"]) if isinstance(group["created_at"], str) else group["created_at"]
+    return GroupResponse(**group)
+
+@api_router.put("/groups/{group_id}", response_model=GroupResponse)
+async def update_group(group_id: str, data: GroupCreate, admin=Depends(get_current_admin)):
+    result = await db.groups.update_one(
+        {"id": group_id},
+        {"$set": data.model_dump()}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Group not found")
+    group = await db.groups.find_one({"id": group_id}, {"_id": 0})
+    if group.get("created_at"):
+        group["created_at"] = datetime.fromisoformat(group["created_at"]) if isinstance(group["created_at"], str) else group["created_at"]
+    return GroupResponse(**group)
+
+@api_router.delete("/groups/{group_id}")
+async def delete_group(group_id: str, admin=Depends(get_current_admin)):
+    # Remove group reference from all campers
+    group = await db.groups.find_one({"id": group_id}, {"_id": 0})
+    if group:
+        for camper_id in group.get("assigned_campers", []):
+            await db.campers.update_one(
+                {"id": camper_id},
+                {"$pull": {"groups": group_id}}
+            )
+    
+    result = await db.groups.delete_one({"id": group_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Group not found")
+    return {"message": "Group deleted"}
+
+@api_router.put("/groups/{group_id}/assign")
+async def assign_camper_to_group(group_id: str, camper_id: str, admin=Depends(get_current_admin)):
+    result = await db.groups.update_one(
+        {"id": group_id},
+        {"$addToSet": {"assigned_campers": camper_id}}
+    )
+    
+    # Add group to camper's groups array
+    await db.campers.update_one(
+        {"id": camper_id},
+        {"$addToSet": {"groups": group_id}}
+    )
+    
+    # Log activity
+    group = await db.groups.find_one({"id": group_id}, {"_id": 0})
+    await log_activity(
+        entity_type="camper",
+        entity_id=camper_id,
+        action="group_assigned",
+        details={"group_id": group_id, "group_name": group.get("name") if group else None, "group_type": group.get("type") if group else None},
+        performed_by=admin.get("id")
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Group not found")
+    return {"message": "Camper assigned to group"}
+
+@api_router.put("/groups/{group_id}/unassign")
+async def unassign_camper_from_group(group_id: str, camper_id: str, admin=Depends(get_current_admin)):
+    result = await db.groups.update_one(
+        {"id": group_id},
+        {"$pull": {"assigned_campers": camper_id}}
+    )
+    
+    # Remove group from camper's groups array
+    await db.campers.update_one(
+        {"id": camper_id},
+        {"$pull": {"groups": group_id}}
+    )
+    
+    return {"message": "Camper removed from group"}
+
+# ==================== ACTIVITY LOG ====================
+
+async def log_activity(entity_type: str, entity_id: str, action: str, details: dict = None, performed_by: str = None):
+    """Helper to log activities"""
+    log_doc = {
+        "id": str(uuid.uuid4()),
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "action": action,
+        "details": details or {},
+        "performed_by": performed_by,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.activity_logs.insert_one(log_doc)
+    return log_doc
+
+@api_router.get("/activity/{entity_type}/{entity_id}")
+async def get_activity_log(entity_type: str, entity_id: str, admin=Depends(get_current_admin)):
+    logs = await db.activity_logs.find(
+        {"entity_type": entity_type, "entity_id": entity_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with admin names
+    for log in logs:
+        if log.get("performed_by"):
+            admin_user = await db.admins.find_one({"id": log["performed_by"]}, {"_id": 0})
+            log["performed_by_name"] = admin_user.get("name") if admin_user else "Unknown"
+        log["created_at"] = datetime.fromisoformat(log["created_at"]) if isinstance(log["created_at"], str) else log["created_at"]
+    
+    return logs
+
+@api_router.post("/activity/{entity_type}/{entity_id}/note")
+async def add_note(entity_type: str, entity_id: str, note: str = Query(...), admin=Depends(get_current_admin)):
+    """Add a note to a camper or parent"""
+    log = await log_activity(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        action="note_added",
+        details={"note": note},
+        performed_by=admin.get("id")
+    )
+    return {"message": "Note added", "log_id": log["id"]}
+
 # ==================== EXPENSE ROUTES ====================
 
 @api_router.post("/expenses", response_model=ExpenseResponse)
