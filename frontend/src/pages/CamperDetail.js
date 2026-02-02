@@ -174,24 +174,37 @@ function CamperDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Status Card */}
+          {/* Status & Due Date Card */}
           <Card className="card-camp">
             <CardHeader>
               <CardTitle className="font-heading text-xl">Enrollment Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
-                <div className={'w-3 h-3 rounded-full ' + (statusColors[camper.status] || 'bg-gray-500')} />
-                <Select value={camper.status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-[250px]" data-testid="status-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {KANBAN_STATUSES.map(function(status) {
-                      return <SelectItem key={status} value={status}>{status}</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className={'w-3 h-3 rounded-full ' + (statusColors[camper.status] || 'bg-gray-500')} />
+                  <Select value={camper.status} onValueChange={handleStatusChange}>
+                    <SelectTrigger className="w-[250px]" data-testid="status-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {KANBAN_STATUSES.map(function(status) {
+                        return <SelectItem key={status} value={status}>{status}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#E85D04]" />
+                  <Label className="text-sm font-medium">Due Date:</Label>
+                  <Input
+                    type="date"
+                    value={camper.due_date || ''}
+                    onChange={function(e) { setCamper({...camper, due_date: e.target.value}); }}
+                    className="w-[160px]"
+                    data-testid="due-date-input"
+                  />
+                </div>
               </div>
               {(camper.status === 'Accepted' || camper.status === 'Paid in Full') && (
                 <p className="text-sm text-muted-foreground mt-3">
