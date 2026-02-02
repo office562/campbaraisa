@@ -502,11 +502,11 @@ async def update_camper_status(camper_id: str, status: str = Query(...), admin=D
             "subject": f"Welcome to Camp Baraisa - {camper['first_name']} Accepted!",
             "message": f"""We've spoken to your son's Rabbeim & have heard great things.
 
-We are very excited to have {camper['first_name']} join us for this upcoming Summer תשפ''ו/2026 Bez"H.
+We are very excited to have {camper['first_name']} join us for this upcoming Summer 2026 Bez"H.
 
 We will I"yH be sending out a packing list & additional info which will be sent out closer to the summer.
 
-Flight & Billing info will be sent in a separate emails.
+Flight & Billing info will be sent in separate emails.
 
 Thank you and looking forward!""",
             "direction": "outbound",
