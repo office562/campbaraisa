@@ -87,7 +87,7 @@ const Settings = () => {
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [newTemplate, setNewTemplate] = useState({
-    name: '', subject: '', body: '', trigger: '', template_type: 'email'
+    name: '', subject: '', body: '', trigger: 'none', template_type: 'email'
   });
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
