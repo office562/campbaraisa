@@ -154,43 +154,6 @@ function CamperCard({ camper, onDragStart, onClick }) {
               </p>
             )}
           </div>
-          
-          {/* Quick Actions - Always visible */}
-          <div className="flex gap-1">
-            {camper.parent_phone && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 h-8 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                  onClick={handleCall}
-                >
-                  <Phone className="w-3 h-3 mr-1" />
-                  Call
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 h-8 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                  onClick={handleSMS}
-                >
-                  <MessageSquare className="w-3 h-3 mr-1" />
-                  SMS
-                </Button>
-              </>
-            )}
-            {camper.parent_email && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-8 text-xs bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-                onClick={handleEmail}
-              >
-                <Mail className="w-3 h-3 mr-1" />
-                Email
-              </Button>
-            )}
-          </div>
         </div>
       )}
 
