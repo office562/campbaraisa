@@ -229,6 +229,7 @@ class EmailTemplateBase(BaseModel):
     subject: str
     body: str
     trigger: Optional[str] = None
+    template_type: str = "email"  # email or sms
 
 class EmailTemplateCreate(EmailTemplateBase):
     pass
@@ -236,6 +237,115 @@ class EmailTemplateCreate(EmailTemplateBase):
 class EmailTemplateResponse(EmailTemplateBase):
     model_config = ConfigDict(extra="ignore")
     id: str
+
+# Available merge fields for templates
+TEMPLATE_MERGE_FIELDS = {
+    "parent": [
+        {"field": "{{parent_father_title}}", "label": "Father Title (Rabbi, Mr, etc.)"},
+        {"field": "{{parent_father_first_name}}", "label": "Father First Name"},
+        {"field": "{{parent_father_last_name}}", "label": "Father Last Name"},
+        {"field": "{{parent_father_cell}}", "label": "Father Cell Phone"},
+        {"field": "{{parent_mother_first_name}}", "label": "Mother First Name"},
+        {"field": "{{parent_mother_last_name}}", "label": "Mother Last Name"},
+        {"field": "{{parent_mother_cell}}", "label": "Mother Cell Phone"},
+        {"field": "{{parent_email}}", "label": "Parent Email"},
+        {"field": "{{parent_address}}", "label": "Parent Address"},
+    ],
+    "camper": [
+        {"field": "{{camper_first_name}}", "label": "Camper First Name"},
+        {"field": "{{camper_last_name}}", "label": "Camper Last Name"},
+        {"field": "{{camper_full_name}}", "label": "Camper Full Name"},
+        {"field": "{{camper_grade}}", "label": "Camper Grade"},
+        {"field": "{{camper_yeshiva}}", "label": "Camper Yeshiva"},
+        {"field": "{{camper_status}}", "label": "Camper Status"},
+    ],
+    "billing": [
+        {"field": "{{amount_due}}", "label": "Amount Due"},
+        {"field": "{{total_balance}}", "label": "Total Balance"},
+        {"field": "{{due_date}}", "label": "Payment Due Date"},
+        {"field": "{{payment_link}}", "label": "Payment Portal Link"},
+    ],
+    "camp": [
+        {"field": "{{camp_name}}", "label": "Camp Name"},
+        {"field": "{{camp_email}}", "label": "Camp Email"},
+        {"field": "{{camp_phone}}", "label": "Camp Phone"},
+    ]
+}
+
+# Default templates to seed
+DEFAULT_TEMPLATES = [
+    {
+        "name": "Acceptance Letter",
+        "subject": "Welcome to {{camp_name}} - {{camper_first_name}} Has Been Accepted!",
+        "body": """Dear {{parent_father_title}} and Mrs. {{parent_father_last_name}},
+
+We are thrilled to inform you that {{camper_first_name}} {{camper_last_name}} has been accepted to {{camp_name}} for the upcoming summer!
+
+We can't wait to have {{camper_first_name}} join us for The Ultimate Bein Hazmanim Experience.
+
+To secure your spot, please submit your deposit by visiting your Parent Portal:
+{{payment_link}}
+
+If you have any questions, please don't hesitate to reach out.
+
+Best regards,
+{{camp_name}} Team
+{{camp_email}}""",
+        "trigger": "status_accepted",
+        "template_type": "email"
+    },
+    {
+        "name": "Payment Reminder",
+        "subject": "Payment Reminder - {{amount_due}} Due for {{camper_first_name}}",
+        "body": """Dear {{parent_father_title}} {{parent_father_last_name}},
+
+This is a friendly reminder that you have a payment of {{amount_due}} due for {{camper_first_name}}'s enrollment at {{camp_name}}.
+
+Due Date: {{due_date}}
+
+You can make your payment easily through your Parent Portal:
+{{payment_link}}
+
+If you have already sent payment, please disregard this message.
+
+Thank you,
+{{camp_name}}""",
+        "trigger": "payment_reminder",
+        "template_type": "email"
+    },
+    {
+        "name": "Payment Received - Full",
+        "subject": "Payment Confirmed - {{camper_first_name}} is Fully Enrolled!",
+        "body": """Dear {{parent_father_title}} and Mrs. {{parent_father_last_name}},
+
+Great news! We have received your full payment for {{camper_first_name}} {{camper_last_name}}.
+
+{{camper_first_name}} is now fully enrolled for this summer at {{camp_name}}!
+
+We will be sending more information about camp preparations closer to the start date.
+
+Thank you for choosing {{camp_name}}!
+
+Best regards,
+{{camp_name}} Team""",
+        "trigger": "status_paid_in_full",
+        "template_type": "email"
+    },
+    {
+        "name": "SMS - Acceptance",
+        "subject": "",
+        "body": "{{camp_name}}: Great news! {{camper_first_name}} has been accepted! Visit your portal to complete enrollment: {{payment_link}}",
+        "trigger": "status_accepted",
+        "template_type": "sms"
+    },
+    {
+        "name": "SMS - Payment Reminder",
+        "subject": "",
+        "body": "{{camp_name}} Reminder: {{amount_due}} due by {{due_date}} for {{camper_first_name}}. Pay now: {{payment_link}}",
+        "trigger": "payment_reminder",
+        "template_type": "sms"
+    }
+]
 
 class SettingsBase(BaseModel):
     camp_name: str = "Camp Baraisa"
