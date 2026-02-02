@@ -75,7 +75,7 @@ const Login = () => {
           <h1 className="font-heading text-4xl font-black text-white tracking-tight">
             CAMP BARAISA
           </h1>
-          <p className="text-white/70 font-hebrew text-lg">מחנה ברייסא</p>
+          <p className="text-white/70 text-lg">Utah Summer Camp</p>
         </div>
 
         <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0">
