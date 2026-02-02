@@ -1167,6 +1167,12 @@ async def get_dashboard_stats(admin=Depends(get_current_admin)):
         "pending_communications": pending_comms
     }
 
+# ==================== HEALTH CHECK ====================
+
+@api_router.get("/")
+async def root():
+    return {"message": "Camp Baraisa API", "status": "healthy"}
+
 # ==================== MAIN APP CONFIG ====================
 
 app.include_router(api_router)
