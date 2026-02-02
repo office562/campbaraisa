@@ -668,7 +668,7 @@ function Campers() {
                       </TableCell>
                       <TableCell>{camper.grade || '-'}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{camper.yeshiva || '-'}</TableCell>
-                      <TableCell>{getParentName(camper.parent_id)}</TableCell>
+                      <TableCell>{getParentName(camper)}</TableCell>
                       <TableCell>
                         <Badge className={statusColors[camper.status] || 'bg-gray-100 text-gray-800'}>
                           {camper.status}
