@@ -161,35 +161,31 @@ function Campers() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [campers, setCampers] = useState([]);
-  const [parents, setParents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [gradeFilter, setGradeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   
   // Dialog states
-  const [showAddParent, setShowAddParent] = useState(false);
   const [showAddCamper, setShowAddCamper] = useState(false);
-  const [newParent, setNewParent] = useState({
-    email: '', father_first_name: '', father_last_name: '', father_cell: '',
-    mother_first_name: '', mother_last_name: '', mother_cell: ''
-  });
   const [newCamper, setNewCamper] = useState({
+    // Camper info
     first_name: '', last_name: '', address: '', city: '', state: '', zip_code: '',
     date_of_birth: '', yeshiva: '', yeshiva_other: '', grade: '', menahel: '',
     rebbe_name: '', rebbe_phone: '', previous_yeshiva: '', camp_2024: '', camp_2023: '',
     allergies: '', medical_info: '', emergency_contact_name: '', emergency_contact_phone: '',
-    emergency_contact_relationship: '', parent_id: ''
+    emergency_contact_relationship: '',
+    // Parent info (embedded)
+    parent_email: '', father_first_name: '', father_last_name: '', father_cell: '',
+    mother_first_name: '', mother_last_name: '', mother_cell: ''
   });
 
   async function fetchData() {
     try {
-      const [campersRes, parentsRes] = await Promise.all([
-        axios.get(API_URL + '/api/campers', { headers: { Authorization: 'Bearer ' + token }}),
-        axios.get(API_URL + '/api/parents', { headers: { Authorization: 'Bearer ' + token }})
-      ]);
+      const campersRes = await axios.get(API_URL + '/api/campers', { 
+        headers: { Authorization: 'Bearer ' + token }
+      });
       setCampers(campersRes.data);
-      setParents(parentsRes.data);
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
@@ -200,28 +196,6 @@ function Campers() {
   useEffect(function() {
     fetchData();
   }, [token]);
-
-  async function handleAddParent(e) {
-    e.preventDefault();
-    try {
-      const parentData = {
-        ...newParent,
-        first_name: newParent.father_first_name,
-        last_name: newParent.father_last_name,
-        phone: newParent.father_cell
-      };
-      const response = await axios.post(API_URL + '/api/parents', parentData, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      setParents([...parents, response.data]);
-      setShowAddParent(false);
-      setNewParent({ email: '', father_first_name: '', father_last_name: '', father_cell: '',
-        mother_first_name: '', mother_last_name: '', mother_cell: '' });
-      toast.success('Parent added successfully');
-    } catch (error) {
-      toast.error('Failed to add parent');
-    }
-  }
 
   async function handleAddCamper(e) {
     e.preventDefault();
@@ -236,7 +210,9 @@ function Campers() {
         date_of_birth: '', yeshiva: '', yeshiva_other: '', grade: '', menahel: '',
         rebbe_name: '', rebbe_phone: '', previous_yeshiva: '', camp_2024: '', camp_2023: '',
         allergies: '', medical_info: '', emergency_contact_name: '', emergency_contact_phone: '',
-        emergency_contact_relationship: '', parent_id: ''
+        emergency_contact_relationship: '',
+        parent_email: '', father_first_name: '', father_last_name: '', father_cell: '',
+        mother_first_name: '', mother_last_name: '', mother_cell: ''
       });
       toast.success('Camper added successfully');
     } catch (error) {
@@ -244,12 +220,20 @@ function Campers() {
     }
   }
 
-  function getParentName(parentId) {
-    const parent = parents.find(function(p) { return p.id === parentId; });
-    if (!parent) return 'Unknown';
-    const firstName = parent.father_first_name || parent.first_name || '';
-    const lastName = parent.father_last_name || parent.last_name || '';
-    return (firstName + ' ' + lastName).trim() || 'Unknown';
+  function getParentName(camper) {
+    // Parent info is now embedded in camper
+    const firstName = camper.father_first_name || '';
+    const lastName = camper.father_last_name || '';
+    if (firstName || lastName) {
+      return (firstName + ' ' + lastName).trim();
+    }
+    // Fallback to mother's name
+    const motherFirst = camper.mother_first_name || '';
+    const motherLast = camper.mother_last_name || '';
+    if (motherFirst || motherLast) {
+      return (motherFirst + ' ' + motherLast).trim();
+    }
+    return 'No parent info';
   }
 
   const filteredCampers = campers.filter(function(camper) {
