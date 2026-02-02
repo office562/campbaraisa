@@ -574,7 +574,7 @@ function Campers() {
                 </div>
 
                 <DialogFooter>
-                  <Button type="submit" className="btn-camp-primary" disabled={!newCamper.parent_id} data-testid="save-camper-btn">
+                  <Button type="submit" className="btn-camp-primary" data-testid="save-camper-btn">
                     Save Camper
                   </Button>
                 </DialogFooter>
