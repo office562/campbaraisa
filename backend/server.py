@@ -642,6 +642,68 @@ async def get_parents(admin=Depends(get_current_admin)):
     
     return list(parents_map.values())
 
+# ==================== PUBLIC APPLICATION ENDPOINT ====================
+
+class ApplicationSubmission(BaseModel):
+    first_name: str
+    last_name: str
+    date_of_birth: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    parent_email: str
+    father_first_name: str
+    father_last_name: str
+    father_cell: str
+    mother_first_name: Optional[str] = None
+    mother_last_name: Optional[str] = None
+    mother_cell: Optional[str] = None
+    yeshiva: Optional[str] = None
+    yeshiva_other: Optional[str] = None
+    grade: Optional[str] = None
+    menahel: Optional[str] = None
+    rebbe_name: Optional[str] = None
+    rebbe_phone: Optional[str] = None
+    previous_yeshiva: Optional[str] = None
+    camp_2024: Optional[str] = None
+    camp_2023: Optional[str] = None
+    emergency_contact_name: str
+    emergency_contact_phone: str
+    emergency_contact_relationship: str
+    medical_info: Optional[str] = None
+    allergies: Optional[str] = None
+
+@api_router.post("/applications")
+async def submit_application(data: ApplicationSubmission):
+    """Public endpoint for parents to submit camper applications (no auth required)"""
+    # Generate unique portal token
+    clean_name = ''.join(c for c in data.last_name.lower() if c.isalnum())
+    portal_token = f"{clean_name}-{secrets.token_urlsafe(8)}"
+    
+    camper_doc = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "portal_token": portal_token,
+        "status": "Applied",
+        "total_balance": 0.0,
+        "total_paid": 0.0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.campers.insert_one(camper_doc)
+    
+    # Log the activity
+    await log_activity(
+        entity_type="camper",
+        entity_id=camper_doc["id"],
+        action="camper_created",
+        details={"source": "public_application"},
+        performed_by=None  # Public submission
+    )
+    
+    return {"message": "Application submitted successfully", "id": camper_doc["id"]}
+
 # ==================== CAMPER ROUTES (Combined with Parent data) ====================
 
 def generate_portal_url(last_name: str) -> str:
