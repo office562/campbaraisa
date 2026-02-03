@@ -809,6 +809,98 @@ function Billing() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Stripe Checkout Dialog */}
+      <Dialog open={showStripeDialog} onOpenChange={setShowStripeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl flex items-center gap-2">
+              <CreditCard className="w-6 h-6 text-[#E85D04]" />
+              Charge Credit Card
+            </DialogTitle>
+            <DialogDescription>
+              Process a credit card payment for {stripeInvoice ? getCamperName(stripeInvoice.camper_id) : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {stripeInvoice && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between mb-2">
+                  <span className="text-muted-foreground">Invoice Amount</span>
+                  <span className="font-medium">${stripeInvoice.amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-muted-foreground">Already Paid</span>
+                  <span className="font-medium text-[#2A9D8F]">${stripeInvoice.paid_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="font-medium">Balance Due</span>
+                  <span className="font-bold text-[#E85D04]">
+                    ${(stripeInvoice.amount - stripeInvoice.paid_amount).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+            <div>
+              <Label>Payment Amount ($)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={stripeAmount}
+                onChange={(e) => setStripeAmount(e.target.value)}
+                max={stripeInvoice ? (stripeInvoice.amount - stripeInvoice.paid_amount) : 0}
+                data-testid="stripe-amount-input"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter full balance or partial payment amount
+              </p>
+            </div>
+            
+            {/* Fee Breakdown */}
+            {stripeAmount && parseFloat(stripeAmount) > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm font-medium text-amber-800 mb-2">
+                  Credit Card Processing Fee (3.5%)
+                </p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-amber-700">Payment Amount:</span>
+                    <span className="font-medium">${calculateStripeFee().base.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-amber-700">Processing Fee (3.5%):</span>
+                    <span className="font-medium">+ ${calculateStripeFee().fee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-amber-200 pt-1 mt-1">
+                    <span className="font-medium text-amber-900">Total Charge:</span>
+                    <span className="font-bold text-amber-900">${calculateStripeFee().total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowStripeDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStripeCheckout}
+              className="btn-camp-primary"
+              disabled={processingStripe || !stripeAmount || parseFloat(stripeAmount) <= 0}
+              data-testid="process-stripe-btn"
+            >
+              {processingStripe ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Charge ${stripeAmount ? calculateStripeFee().total.toFixed(2) : '0.00'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
