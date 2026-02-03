@@ -1423,13 +1423,16 @@ async def create_invoice(data: InvoiceCreate, admin=Depends(get_current_admin)):
     invoice_doc["created_at"] = datetime.fromisoformat(invoice_doc["created_at"])
     return InvoiceResponse(**invoice_doc)
 
-@api_router.get("/invoices", response_model=List[InvoiceResponse])
+@api_router.get("/invoices")
 async def get_invoices(
     camper_id: Optional[str] = None,
     status: Optional[str] = None,
+    include_deleted: bool = False,
     admin=Depends(get_current_admin)
 ):
     query = {}
+    if not include_deleted:
+        query["is_deleted"] = {"$ne": True}
     if camper_id:
         query["camper_id"] = camper_id
     if status:
@@ -1437,14 +1440,18 @@ async def get_invoices(
     
     invoices = await db.invoices.find(query, {"_id": 0}).to_list(1000)
     for inv in invoices:
-        inv["created_at"] = datetime.fromisoformat(inv["created_at"])
+        if inv.get("created_at"):
+            try:
+                inv["created_at"] = datetime.fromisoformat(inv["created_at"].replace("Z", "+00:00")) if isinstance(inv["created_at"], str) else inv["created_at"]
+            except:
+                inv["created_at"] = datetime.now(timezone.utc)
         # Calculate next reminder if not set
         if not inv.get("next_reminder_date"):
             inv["next_reminder_date"] = calculate_next_reminder(
                 inv.get("due_date"), 
                 inv.get("reminder_sent_dates", [])
             )
-    return [InvoiceResponse(**inv) for inv in invoices]
+    return invoices
 
 @api_router.get("/invoices/{invoice_id}", response_model=InvoiceResponse)
 async def get_invoice(invoice_id: str, admin=Depends(get_current_admin)):
