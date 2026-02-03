@@ -256,10 +256,6 @@ function Billing() {
   };
 
   const handleDeleteFee = async (feeId) => {
-    if (feeId === 'camp_fee') {
-      toast.error('Cannot delete default camp fee');
-      return;
-    }
     try {
       await axios.delete(`${API_URL}/api/fees/${feeId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -267,7 +263,25 @@ function Billing() {
       fetchData();
       toast.success('Fee deleted');
     } catch (error) {
-      toast.error('Failed to delete fee');
+      toast.error(error.response?.data?.detail || 'Cannot delete this fee');
+    }
+  };
+
+  const handleUpdateFee = async () => {
+    if (!editingFee) return;
+    try {
+      await axios.put(`${API_URL}/api/fees/${editingFee.id}`, {
+        name: editingFee.name,
+        amount: parseFloat(editingFee.amount),
+        description: editingFee.description || ''
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchData();
+      setEditingFee(null);
+      toast.success('Fee updated');
+    } catch (error) {
+      toast.error('Failed to update fee');
     }
   };
 
