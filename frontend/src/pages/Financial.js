@@ -110,6 +110,63 @@ const Financial = () => {
     }
   };
 
+  const handleQuickBooksExport = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/financial/quickbooks-export`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = response.data;
+      
+      // Create CSV content
+      let csv = "QUICKBOOKS EXPORT - Camp Baraisa\n";
+      csv += "Export Date," + data.summary.export_date + "\n\n";
+      
+      // Summary
+      csv += "SUMMARY\n";
+      csv += "Total Invoiced," + data.summary.total_invoiced + "\n";
+      csv += "Total Collected," + data.summary.total_collected + "\n";
+      csv += "Total Expenses," + data.summary.total_expenses + "\n\n";
+      
+      // Invoices
+      csv += "INVOICES\n";
+      csv += "Date,Type,Customer,Description,Amount,Balance,Status,Due Date\n";
+      for (let i = 0; i < data.invoices.length; i++) {
+        const inv = data.invoices[i];
+        csv += [inv.Date, inv.Type, inv.Customer, inv.Description, inv.Amount, inv.Balance, inv.Status, inv["Due Date"]].join(",") + "\n";
+      }
+      csv += "\n";
+      
+      // Payments
+      csv += "PAYMENTS\n";
+      csv += "Date,Type,Method,Amount,Status,Reference\n";
+      for (let i = 0; i < data.payments.length; i++) {
+        const pay = data.payments[i];
+        csv += [pay.Date, pay.Type, pay.Method, pay.Amount, pay.Status, pay.Reference].join(",") + "\n";
+      }
+      csv += "\n";
+      
+      // Expenses
+      csv += "EXPENSES\n";
+      csv += "Date,Type,Category,Vendor,Description,Amount\n";
+      for (let i = 0; i < data.expenses.length; i++) {
+        const exp = data.expenses[i];
+        csv += [exp.Date, exp.Type, exp.Category, exp.Vendor, exp.Description, exp.Amount].join(",") + "\n";
+      }
+      
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'CampBaraisa_QuickBooks_Export_' + new Date().toISOString().split('T')[0] + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('QuickBooks export downloaded');
+    } catch (error) {
+      toast.error('Failed to export data');
+    }
+  };
+
   // Prepare chart data - using traditional loops to avoid babel plugin issues
   const getExpenseChartData = () => {
     if (!summary || !summary.expense_by_category) return [];
