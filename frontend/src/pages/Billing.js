@@ -204,7 +204,9 @@ function Billing() {
 
   const resetInvoiceForm = () => {
     setSelectedCamper(null);
-    setSelectedFees([]);
+    // Auto-select the default camp fee
+    const defaultFee = fees.find(f => f.is_default);
+    setSelectedFees(defaultFee ? [defaultFee.id] : []);
     setCustomAmount('');
     setInvoiceDescription('');
     setInvoiceDueDate('');
