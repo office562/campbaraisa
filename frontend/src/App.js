@@ -67,6 +67,7 @@ function AppRoutes() {
         <Route path="kanban" element={<Kanban />} />
         <Route path="communications" element={<Communications />} />
         <Route path="rooms" element={<Rooms />} />
+        <Route path="groups" element={<Groups />} />
         <Route path="financial" element={<Financial />} />
         <Route path="data-center" element={<DataCenter />} />
         <Route path="settings" element={<Settings />} />
