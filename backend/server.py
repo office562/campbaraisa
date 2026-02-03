@@ -2107,6 +2107,162 @@ async def get_financial_summary(admin=Depends(get_current_admin)):
         "payment_by_method": payment_by_method
     }
 
+@api_router.get("/financial/quickbooks-export")
+async def export_quickbooks(admin=Depends(get_current_admin)):
+    """Export financial data in QuickBooks-compatible format (IIF)"""
+    invoices = await db.invoices.find({}, {"_id": 0}).to_list(1000)
+    payments = await db.payments.find({}, {"_id": 0}).to_list(1000)
+    expenses = await db.expenses.find({}, {"_id": 0}).to_list(1000)
+    campers = await db.campers.find({}, {"_id": 0}).to_list(1000)
+    
+    camper_map = {c["id"]: c for c in campers}
+    
+    # Create CSV data for invoices
+    invoice_rows = []
+    for inv in invoices:
+        camper = camper_map.get(inv.get("camper_id"), {})
+        invoice_rows.append({
+            "Date": inv.get("created_at", "")[:10] if inv.get("created_at") else "",
+            "Type": "Invoice",
+            "Customer": f"{camper.get('first_name', '')} {camper.get('last_name', '')}".strip() or "Unknown",
+            "Description": inv.get("description", "Camp Fee"),
+            "Amount": inv.get("amount", 0),
+            "Balance": inv.get("amount", 0) - inv.get("paid_amount", 0),
+            "Status": inv.get("status", "pending"),
+            "Due Date": inv.get("due_date", "")
+        })
+    
+    # Create CSV data for payments
+    payment_rows = []
+    for pay in payments:
+        payment_rows.append({
+            "Date": pay.get("payment_date", pay.get("created_at", ""))[:10] if pay.get("payment_date") or pay.get("created_at") else "",
+            "Type": "Payment",
+            "Method": pay.get("method", ""),
+            "Amount": pay.get("amount", 0),
+            "Status": pay.get("status", ""),
+            "Reference": pay.get("notes", "")
+        })
+    
+    # Create CSV data for expenses
+    expense_rows = []
+    for exp in expenses:
+        expense_rows.append({
+            "Date": exp.get("date", exp.get("created_at", ""))[:10] if exp.get("date") or exp.get("created_at") else "",
+            "Type": "Expense",
+            "Category": exp.get("category", ""),
+            "Vendor": exp.get("vendor", ""),
+            "Description": exp.get("description", ""),
+            "Amount": exp.get("amount", 0)
+        })
+    
+    return {
+        "invoices": invoice_rows,
+        "payments": payment_rows,
+        "expenses": expense_rows,
+        "summary": {
+            "total_invoiced": sum(inv.get("amount", 0) for inv in invoices),
+            "total_collected": sum(pay.get("amount", 0) for pay in payments if pay.get("status") == "completed"),
+            "total_expenses": sum(exp.get("amount", 0) for exp in expenses),
+            "export_date": datetime.now(timezone.utc).isoformat()
+        }
+    }
+
+# ==================== INVOICE REMINDERS ====================
+
+@api_router.get("/invoices/due-reminders")
+async def get_due_reminders(admin=Depends(get_current_admin)):
+    """Get invoices that need payment reminders"""
+    today = datetime.now(timezone.utc).date()
+    invoices = await db.invoices.find({"status": {"$ne": "paid"}}, {"_id": 0}).to_list(1000)
+    campers = await db.campers.find({}, {"_id": 0}).to_list(1000)
+    camper_map = {c["id"]: c for c in campers}
+    
+    reminders = {
+        "15_days_before": [],
+        "on_due_date": [],
+        "3_days_after": [],
+        "7_days_after": [],
+        "15_days_after": []
+    }
+    
+    for inv in invoices:
+        if not inv.get("due_date"):
+            continue
+        
+        try:
+            due_date = datetime.strptime(inv["due_date"], "%Y-%m-%d").date()
+        except:
+            continue
+        
+        days_diff = (due_date - today).days
+        camper = camper_map.get(inv.get("camper_id"), {})
+        balance = inv.get("amount", 0) - inv.get("paid_amount", 0)
+        
+        if balance <= 0:
+            continue
+        
+        reminder_info = {
+            "invoice_id": inv.get("id"),
+            "camper_name": f"{camper.get('first_name', '')} {camper.get('last_name', '')}".strip(),
+            "parent_email": camper.get("parent_email"),
+            "parent_phone": camper.get("father_cell") or camper.get("mother_cell"),
+            "amount_due": balance,
+            "due_date": inv.get("due_date"),
+            "days_until_due": days_diff
+        }
+        
+        if days_diff == 15:
+            reminders["15_days_before"].append(reminder_info)
+        elif days_diff == 0:
+            reminders["on_due_date"].append(reminder_info)
+        elif days_diff == -3:
+            reminders["3_days_after"].append(reminder_info)
+        elif days_diff == -7:
+            reminders["7_days_after"].append(reminder_info)
+        elif days_diff == -15:
+            reminders["15_days_after"].append(reminder_info)
+    
+    return reminders
+
+@api_router.post("/invoices/{invoice_id}/send-reminder")
+async def send_invoice_reminder(invoice_id: str, reminder_type: str = "manual", admin=Depends(get_current_admin)):
+    """Send a payment reminder for an invoice"""
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    camper = await db.campers.find_one({"id": invoice.get("camper_id")}, {"_id": 0})
+    if not camper:
+        raise HTTPException(status_code=404, detail="Camper not found")
+    
+    # Log the reminder
+    await db.activity_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "entity_type": "invoice",
+        "entity_id": invoice_id,
+        "action": "reminder_sent",
+        "details": {
+            "reminder_type": reminder_type,
+            "email": camper.get("parent_email"),
+            "amount_due": invoice.get("amount", 0) - invoice.get("paid_amount", 0)
+        },
+        "performed_by": admin.get("id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Update invoice with last reminder date
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {"last_reminder_sent": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {
+        "message": "Reminder logged",
+        "email": camper.get("parent_email"),
+        "camper": f"{camper.get('first_name', '')} {camper.get('last_name', '')}".strip()
+    }
+
 # ==================== EMAIL TEMPLATE ROUTES ====================
 
 @api_router.get("/template-merge-fields")
