@@ -176,7 +176,8 @@ function Settings() {
           resend_enabled: settingsRes.data.resend_enabled || false,
           email_provider: settingsRes.data.email_provider || 'none',
           stripe_api_key: settingsRes.data.stripe_api_key || '',
-          jotform_api_key: settingsRes.data.jotform_api_key || ''
+          jotform_api_key: settingsRes.data.jotform_api_key || '',
+          portal_links_enabled: settingsRes.data.portal_links_enabled !== false
         });
       }
     } catch (error) {
