@@ -1,111 +1,120 @@
 # Camp Baraisa - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive camp management system for Camp Baraisa, enabling admins to manage camper registrations, billing, communications, and track enrollment status through a Kanban-style workflow.
+Build a comprehensive camp management system for Camp Baraisa with a unified camper model, Kanban workflow, billing/invoicing, and communications management.
 
-## Implementation Status
+## Latest Session Update (Feb 3, 2026)
 
-### ✅ ALL P1 & P2 FEATURES COMPLETED (Feb 3, 2026)
+### ✅ BILLING SYSTEM OVERHAUL (QuickBooks-Style)
 
-#### P1 Features - DONE
-1. **Hierarchical Groups System** ✅
-   - Parent groups (Transportation, Shiurim, etc.)
-   - Subgroups (Bus 1, Bus 2, Shiur Aleph, etc.)
-   - Assign campers to groups/subgroups
-   - Export group lists as CSV
+#### Invoice Features
+- **Invoice Numbers**: Auto-generated format INV-YYYY-XXXXX
+- **Line Items**: Support multiple fees per invoice
+- **Status Workflow**: Draft → Sent → Viewed → Partial → Paid / Overdue
+- **Discounts**: Fixed amount or percentage discounts
+- **Due Dates**: With automatic overdue detection
+- **Portal Tokens**: Unique secure links for parent access
 
-2. **Sidebar Dropdown** ✅
-   - "Rooms & Groups" expands to show Rooms and Groups sub-items
-   - Chevron icon toggles expand/collapse
-   - Sub-items properly highlighted when active
+#### Invoice Actions
+- **Send Invoice**: Marks as sent, logs communication
+- **View Details**: Full invoice breakdown dialog
+- **Charge Card**: Stripe checkout with 3.5% fee display
+- **Setup Installments**: Split balance into 2-6 payments
+- **Delete (Soft)**: Moves to trash, can be restored
+- **Restore**: Bring back from trash
 
-3. **Smart Search** ✅
-   - Real-time search in header bar
-   - Searches by: camper name, parent name, yeshiva, email
-   - Dropdown shows matching results with details
-   - Click result navigates to camper profile
+#### Installment Plans
+- Admin can set up 2-6 installments from backend
+- Auto-calculates monthly payment amounts
+- Tracks payment status per installment
 
-4. **QuickBooks Export** ✅
-   - Export button on Financial page
-   - Downloads CSV with invoices, payments, expenses
-   - QuickBooks-compatible format
+#### Portal Settings
+- **Toggle**: Enable/disable all portal links (for end of season)
+- Located in Settings > API Keys tab
 
-5. **Expense Tracking** ✅
-   - Add expenses with category, amount, description, date, vendor
-   - Pie chart visualization by category
-   - Categories: Food & Catering, Staff Salaries, Transportation, Activities & Equipment, Utilities, Office Supplies, Medical, Insurance, Marketing, Miscellaneous
+### ✅ STRIPE PAYMENT VERIFICATION
 
-6. **Invoice Reminders Backend** ✅
-   - Endpoint: GET /api/invoices/due-reminders
-   - Returns invoices by reminder timing: 15 days before, due date, +3/+7/+15 days
-   - Endpoint: POST /api/invoices/{id}/send-reminder (logs reminder)
-   - **Note:** Actual automated email sending NOT implemented
+#### Webhook Endpoint
+- `POST /api/stripe/webhook`
+- Handles `checkout.session.completed` events
+- Automatically updates invoice status to Paid/Partial
+- Creates payment record in database
+- Logs activity to camper profile
 
-7. **Communications Log Overhaul** ✅
-   - Tabbed interface: All / Email / SMS
-   - Categorized message list
-   - Click message to see full details (recipient, date, status, content)
-   - Compose message dialog with camper selection
+### ✅ EMAIL MERGE FIELDS FOR PORTAL LINKS
 
-#### Previous Features
-- **Billing System:** Camp fee auto-select, editable fees, Stripe charge with 3.5% fee
-- **Camper Management:** Unified model, photo zoom, Call/Text/Email buttons
-- **Kanban Board:** 10-column drag-and-drop, status-triggered emails
-- **Login/Portal:** Large Utah logo, Bryce Canyon background, full motto
-- **Settings:** Admin management, API keys, templates, trash
+New merge fields available in templates:
+- `{{portal_link}}` - Parent portal link
+- `{{payment_link}}` - Direct payment link
+- `{{invoice_number}}` - Invoice number
+- `{{invoice_amount}}` - Invoice amount
+
+### ✅ PREVIOUS FEATURES (Still Working)
+
+#### P1 Features
+- Hierarchical Groups (parent → subgroups)
+- Sidebar Dropdown for Rooms & Groups
+- Smart Search (real-time camper search)
+- QuickBooks Export (CSV download)
+- Expense Tracking
+- Communications Log (categorized Email/SMS)
+
+#### Core Features
+- Unified Camper Model
+- Kanban Board with 10 columns
+- Call/Text/Email buttons
+- Clickable camper photos
+- Admin management
+- Email templates with triggers
+- Camper delete to trash
 
 ## Tech Stack
-- **Frontend:** React, Tailwind CSS, Shadcn UI
-- **Backend:** FastAPI, Motor (async MongoDB)
-- **Database:** MongoDB
-- **Payments:** Stripe (test mode)
-
-## Database Collections
-- `campers` - Unified camper records
-- `campers_trash` - Soft-deleted campers
-- `admins` - Admin user accounts
-- `invoices` - Financial invoices
-- `payments` - Payment records
-- `expenses` - Expense tracking
-- `activity_logs` - Activity history
-- `email_templates` - Communication templates
-- `groups` - Hierarchical groups (parent_id support)
-- `rooms` - Physical room assignments
-- `saved_reports` - Data Center saved lists
-- `fees` - Custom billable fees
-- `communications` - Email/SMS logs
+- **Frontend**: React, Tailwind CSS, Shadcn UI
+- **Backend**: FastAPI, Motor (async MongoDB)
+- **Database**: MongoDB
+- **Payments**: Stripe (test mode with webhook)
 
 ## Key API Endpoints
-- `GET /api/groups` - List all groups
-- `POST /api/groups` - Create group (with parent_id for subgroups)
-- `PUT /api/groups/{id}/campers` - Assign campers
-- `GET /api/financial/quickbooks-export` - QuickBooks CSV data
-- `GET /api/invoices/due-reminders` - Invoices needing reminders
+
+### Invoices (Enhanced)
+- `POST /api/invoices` - Create with line items, number, portal token
+- `GET /api/invoices` - List with include_deleted option
+- `PUT /api/invoices/{id}` - Update invoice details
+- `POST /api/invoices/{id}/send` - Mark as sent
+- `DELETE /api/invoices/{id}` - Soft delete
+- `GET /api/invoices/trash/list` - List deleted invoices
+- `POST /api/invoices/{id}/restore` - Restore from trash
+- `POST /api/invoices/{id}/installments` - Setup payment plan
 - `POST /api/invoices/{id}/send-reminder` - Log reminder sent
-- `GET/POST /api/expenses` - Expense CRUD
-- `GET/POST /api/communications` - Communications log
+
+### Stripe & Portal
+- `POST /api/stripe/webhook` - Payment verification webhook
+- `POST /api/stripe/checkout` - Create checkout session
+- `GET /api/portal/check/{token}` - Validate portal access
+
+### Settings
+- `GET /api/settings` - Get settings (includes portal_links_enabled)
+- `PUT /api/settings` - Update settings
 
 ## Test Credentials
-- **Admin Email:** admin@campbaraisa.com
-- **Admin Password:** testpassword123
+- **Admin Email**: admin@campbaraisa.com
+- **Admin Password**: testpassword123
 
 ## Test Reports
-- `/app/test_reports/iteration_9.json` - P1/P2 features (100% pass)
-- `/app/test_reports/iteration_8.json` - Billing fixes (100% pass)
+- `/app/test_reports/iteration_10.json` - Billing overhaul (93% backend, 100% frontend)
 
 ## Remaining/Future Items
 
-### Not Yet Implemented
-- **Automated Invoice Reminders:** Backend ready, needs cron job or scheduler for actual sending
-- **Configurable Kanban Email Triggers:** UI for linking templates to status changes
-- **Bulk Actions:** Multi-select operations
-- **Installment Plans:** Payment schedule setup
+### Not Yet Automated
+- **Invoice Reminder Emails**: Backend endpoints exist, needs scheduler for auto-send
+- **Kanban Email Triggers**: Template linking UI needed
 
 ### Working But Could Be Enhanced
-- **Data Center:** Could add Groups/Rooms as exportable columns
-- **Email Provider Toggle:** Settings has toggle but actual Resend vs Gmail switching needs verification
+- **Email Sending**: Currently logs only, needs Resend/Gmail API integration
+- **Installment Reminders**: Schedule tracking but no auto-reminders
 
 ## Notes
-- Gmail/Twilio APIs are MOCKED - add keys via Settings
 - Stripe uses test key (sk_test_emergent)
-- JotForm API key: 9647d8b76395cd581d0b2b62ffb7e9d3
+- Portal links can be disabled via Settings when season ends
+- Invoice numbers: INV-YYYY-XXXXX format
+- Soft delete pattern used for both campers and invoices
