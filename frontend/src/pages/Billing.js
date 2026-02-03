@@ -92,6 +92,12 @@ function Billing() {
   
   // Fee management
   const [newFee, setNewFee] = useState({ name: '', amount: '', description: '' });
+  
+  // Stripe checkout state
+  const [showStripeDialog, setShowStripeDialog] = useState(false);
+  const [stripeInvoice, setStripeInvoice] = useState(null);
+  const [stripeAmount, setStripeAmount] = useState('');
+  const [processingStripe, setProcessingStripe] = useState(false);
 
   useEffect(() => {
     fetchData();
