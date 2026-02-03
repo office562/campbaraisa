@@ -45,7 +45,12 @@ import {
   Edit,
   Settings,
   Percent,
-  Tag
+  Tag,
+  Send,
+  Eye,
+  Clock,
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
