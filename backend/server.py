@@ -182,23 +182,56 @@ class ParentResponse(ParentBase):
     total_paid: float = 0.0
 
 # Invoice now links directly to camper
+class InvoiceLineItem(BaseModel):
+    id: Optional[str] = None
+    description: str
+    amount: float
+    quantity: int = 1
+    fee_id: Optional[str] = None  # Reference to fee if from fee list
+
+class InstallmentPlan(BaseModel):
+    id: Optional[str] = None
+    total_amount: float
+    num_installments: int
+    schedule: List[Dict[str, Any]] = []  # [{due_date, amount, status, paid_date}]
+    
 class InvoiceBase(BaseModel):
     camper_id: str
     amount: float
     description: str
     due_date: Optional[str] = None
-    reminder_sent_dates: List[str] = []  # Track when reminders were sent
+    reminder_sent_dates: List[str] = []
+    line_items: List[InvoiceLineItem] = []
+    discount_amount: float = 0.0
+    discount_description: Optional[str] = None
+    notes: Optional[str] = None
 
-class InvoiceCreate(InvoiceBase):
-    pass
+class InvoiceCreate(BaseModel):
+    camper_id: str
+    description: str
+    due_date: Optional[str] = None
+    line_items: List[InvoiceLineItem] = []
+    discount_amount: float = 0.0
+    discount_description: Optional[str] = None
+    notes: Optional[str] = None
+    # Installment options
+    create_installments: bool = False
+    num_installments: int = 1
+    installment_dates: List[str] = []
 
 class InvoiceResponse(InvoiceBase):
     model_config = ConfigDict(extra="ignore")
     id: str
-    status: str
+    invoice_number: Optional[str] = None
+    status: str  # draft, sent, viewed, partial, paid, overdue, cancelled
     created_at: datetime
+    sent_at: Optional[str] = None
+    viewed_at: Optional[str] = None
     paid_amount: float = 0.0
     next_reminder_date: Optional[str] = None
+    is_deleted: bool = False
+    installment_plan: Optional[InstallmentPlan] = None
+    portal_token: Optional[str] = None
 
 class PaymentBase(BaseModel):
     invoice_id: str
