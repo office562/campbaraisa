@@ -117,12 +117,50 @@ const Sidebar = function(props) {
   );
 };
 
-const AdminLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+var AdminLayout = function() {
+  var [sidebarOpen, setSidebarOpen] = useState(false);
+  var [searchTerm, setSearchTerm] = useState('');
+  var [searchResults, setSearchResults] = useState([]);
+  var [showResults, setShowResults] = useState(false);
+  var auth = useAuth();
+  var token = auth.token;
+  var navigate = useNavigate();
+
+  function handleSearch(term) {
+    setSearchTerm(term);
+    if (term.length < 2) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    
+    axios.get(API_URL + '/api/campers', { headers: { Authorization: 'Bearer ' + token } })
+      .then(function(res) {
+        var campers = res.data || [];
+        var filtered = campers.filter(function(c) {
+          var search = term.toLowerCase();
+          return (c.first_name || '').toLowerCase().indexOf(search) >= 0 ||
+            (c.last_name || '').toLowerCase().indexOf(search) >= 0 ||
+            (c.father_first_name || '').toLowerCase().indexOf(search) >= 0 ||
+            (c.father_last_name || '').toLowerCase().indexOf(search) >= 0 ||
+            (c.mother_first_name || '').toLowerCase().indexOf(search) >= 0 ||
+            (c.yeshiva || '').toLowerCase().indexOf(search) >= 0 ||
+            (c.parent_email || '').toLowerCase().indexOf(search) >= 0;
+        }).slice(0, 8);
+        setSearchResults(filtered);
+        setShowResults(true);
+      });
+  }
+
+  function selectResult(camper) {
+    setSearchTerm('');
+    setShowResults(false);
+    setSearchResults([]);
+    navigate('/campers/' + camper.id);
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F5F2]">
-      {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#2D241E] text-white h-16 flex items-center px-4">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
@@ -131,36 +169,47 @@ const AdminLayout = () => {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-72 bg-[#2D241E]">
-            <Sidebar onClose={() => setSidebarOpen(false)} />
+            <Sidebar onClose={function() { setSidebarOpen(false); }} />
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-3 ml-4">
-          <img 
-            src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/of4shzam_IMG_3441%202.jpg" 
-            alt="Camp Baraisa" 
-            className="w-8 h-8 object-contain rounded bg-white p-0.5"
-          />
+          <img src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/of4shzam_IMG_3441%202.jpg" alt="Camp Baraisa" className="w-8 h-8 object-contain rounded bg-white p-0.5" />
           <span className="font-heading font-bold">CAMP BARAISA</span>
         </div>
       </header>
 
-      {/* Desktop Sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64">
         <Sidebar />
       </aside>
 
-      {/* Main Content */}
       <main className="lg:pl-64 pt-16 lg:pt-0">
-        {/* Top Bar with Search */}
         <div className="sticky top-0 z-40 bg-[#F8F5F2]/95 backdrop-blur-sm border-b border-gray-200 px-6 py-4 hidden lg:block">
           <div className="flex items-center justify-between">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search campers, parents..."
+                placeholder="Search campers, parents, yeshivas..."
                 className="pl-10 h-10 bg-white/90 border-gray-200 focus:bg-white transition-colors"
+                value={searchTerm}
+                onChange={function(e) { handleSearch(e.target.value); }}
+                onFocus={function() { if (searchResults.length > 0) setShowResults(true); }}
+                onBlur={function() { setTimeout(function() { setShowResults(false); }, 200); }}
+                data-testid="global-search"
               />
+              {showResults && searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-80 overflow-auto z-50">
+                  {searchResults.map(function(c) {
+                    return (
+                      <div key={c.id} className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-0" onClick={function() { selectResult(c); }}>
+                        <p className="font-medium">{c.first_name} {c.last_name}</p>
+                        <p className="text-sm text-muted-foreground">{c.yeshiva || 'No yeshiva'} • {c.grade || 'No grade'}</p>
+                        {c.parent_email && <p className="text-xs text-muted-foreground">{c.parent_email}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div className="text-sm text-muted-foreground">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -168,7 +217,6 @@ const AdminLayout = () => {
           </div>
         </div>
         
-        {/* Mobile Search */}
         <div className="lg:hidden px-4 py-3 bg-[#F8F5F2] border-b border-gray-200 mt-16">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -176,7 +224,22 @@ const AdminLayout = () => {
               type="text"
               placeholder="Search..."
               className="pl-10 h-10"
+              value={searchTerm}
+              onChange={function(e) { handleSearch(e.target.value); }}
+              data-testid="mobile-search"
             />
+            {showResults && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto z-50">
+                {searchResults.map(function(c) {
+                  return (
+                    <div key={c.id} className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-0" onClick={function() { selectResult(c); }}>
+                      <p className="font-medium text-sm">{c.first_name} {c.last_name}</p>
+                      <p className="text-xs text-muted-foreground">{c.yeshiva || 'No yeshiva'}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -187,5 +250,7 @@ const AdminLayout = () => {
     </div>
   );
 };
+
+var API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default AdminLayout;
