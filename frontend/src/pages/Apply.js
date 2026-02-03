@@ -141,7 +141,7 @@ function Apply() {
       <div 
         className="min-h-screen flex flex-col items-center justify-center p-4"
         style={{
-          backgroundImage: 'url(https://images.unsplash.com/photo-1605999211498-1a6cf07fc10d?crop=entropy&cs=srgb&fm=jpg&q=85)',
+          backgroundImage: 'url(https://images.unsplash.com/photo-1628111807066-323ae240b363?crop=entropy&cs=srgb&fm=jpg&q=85)',
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
@@ -161,8 +161,8 @@ function Apply() {
             </p>
             <p className="text-sm text-muted-foreground">
               Questions? Contact us at<br />
-              <a href="tel:732-987-7156" className="text-[#E85D04] hover:underline">732-987-7156</a> or{' '}
-              <a href="mailto:campbaraisa@gmail.com" className="text-[#E85D04] hover:underline">campbaraisa@gmail.com</a>
+              <a href="tel:848-227-2472" className="text-[#E85D04] hover:underline">848.BAR.AISA (227-2472)</a> or{' '}
+              <a href="mailto:office@campbaraisa.com" className="text-[#E85D04] hover:underline">office@campbaraisa.com</a>
             </p>
           </CardContent>
         </Card>
