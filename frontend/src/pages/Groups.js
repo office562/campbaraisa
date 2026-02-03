@@ -586,7 +586,7 @@ export default function Groups() {
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">Assign Campers</DialogTitle>
             <DialogDescription>
-              Select campers to assign to "{selectedGroup?.name}"
+              Select campers to assign to {selectedGroup?.name}
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[400px] pr-4">
