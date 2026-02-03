@@ -1085,6 +1085,176 @@ function Billing() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Setup Installments Dialog */}
+      <Dialog open={showInstallmentDialog} onOpenChange={setShowInstallmentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl flex items-center gap-2">
+              <Clock className="w-6 h-6 text-[#E85D04]" />
+              Setup Installment Plan
+            </DialogTitle>
+            <DialogDescription>
+              Split the balance into multiple payments
+            </DialogDescription>
+          </DialogHeader>
+          {installmentInvoice && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Invoice Amount</span>
+                  <span className="font-medium">${installmentInvoice.amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Already Paid</span>
+                  <span className="font-medium text-[#2A9D8F]">${(installmentInvoice.paid_amount || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2 mt-2">
+                  <span className="font-medium">Balance to Split</span>
+                  <span className="font-bold text-[#E85D04]">
+                    ${(installmentInvoice.amount - (installmentInvoice.paid_amount || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <Label>Number of Installments</Label>
+                <Select value={numInstallments.toString()} onValueChange={(v) => setNumInstallments(parseInt(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2">2 Payments</SelectItem>
+                    <SelectItem value="3">3 Payments</SelectItem>
+                    <SelectItem value="4">4 Payments</SelectItem>
+                    <SelectItem value="5">5 Payments</SelectItem>
+                    <SelectItem value="6">6 Payments</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Each payment: ${((installmentInvoice.amount - (installmentInvoice.paid_amount || 0)) / numInstallments).toFixed(2)}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Payments will be scheduled monthly starting from the due date
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInstallmentDialog(false)}>Cancel</Button>
+            <Button onClick={handleSetupInstallments} className="btn-camp-primary">
+              <Clock className="w-4 h-4 mr-2" />Create Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Invoice Dialog */}
+      <Dialog open={!!viewingInvoice} onOpenChange={() => setViewingInvoice(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl">Invoice Details</DialogTitle>
+          </DialogHeader>
+          {viewingInvoice && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Invoice #</Label>
+                  <p className="font-mono">{viewingInvoice.invoice_number || viewingInvoice.id.slice(0, 8)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Badge className={getStatusBadge(viewingInvoice.status)}>{viewingInvoice.status}</Badge>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Camper</Label>
+                  <p className="font-medium">{getCamperName(viewingInvoice.camper_id)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Due Date</Label>
+                  <p>{viewingInvoice.due_date || 'Not set'}</p>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">Amount</span>
+                  <span className="font-medium">${viewingInvoice.amount.toLocaleString()}</span>
+                </div>
+                {viewingInvoice.discount_amount > 0 && (
+                  <div className="flex justify-between py-1 text-green-600">
+                    <span>Discount</span>
+                    <span>-${viewingInvoice.discount_amount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">Paid</span>
+                  <span className="font-medium text-[#2A9D8F]">${(viewingInvoice.paid_amount || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between py-2 border-t font-bold">
+                  <span>Balance Due</span>
+                  <span className="text-[#E85D04]">${(viewingInvoice.amount - (viewingInvoice.paid_amount || 0)).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {viewingInvoice.installment_plan && (
+                <div className="border-t pt-4">
+                  <Label className="text-xs text-muted-foreground mb-2 block">Installment Plan</Label>
+                  <div className="space-y-2">
+                    {viewingInvoice.installment_plan.schedule.map((inst, idx) => (
+                      <div key={idx} className="flex justify-between p-2 bg-gray-50 rounded">
+                        <span>Payment {inst.installment_number} - {inst.due_date}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">${inst.amount.toFixed(2)}</span>
+                          <Badge className={inst.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}>{inst.status}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewingInvoice.notes && (
+                <div className="border-t pt-4">
+                  <Label className="text-xs text-muted-foreground">Notes</Label>
+                  <p className="text-sm mt-1">{viewingInvoice.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Trash Dialog */}
+      <Dialog open={showTrash} onOpenChange={setShowTrash}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl flex items-center gap-2">
+              <Trash2 className="w-6 h-6 text-red-600" />
+              Deleted Invoices
+            </DialogTitle>
+            <DialogDescription>Restore or permanently delete invoices</DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px]">
+            {deletedInvoices.length > 0 ? (
+              <div className="space-y-2">
+                {deletedInvoices.map(inv => (
+                  <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">{inv.invoice_number || inv.id.slice(0, 8)} - {getCamperName(inv.camper_id)}</p>
+                      <p className="text-sm text-muted-foreground">${inv.amount.toLocaleString()} - {inv.description}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => handleRestoreInvoice(inv.id)}>
+                      <RotateCcw className="w-4 h-4 mr-1" />Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center py-8 text-muted-foreground">No deleted invoices</p>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
