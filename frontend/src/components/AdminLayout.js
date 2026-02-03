@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -14,7 +14,10 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  Search
+  ChevronDown,
+  Search,
+  FolderTree,
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +30,15 @@ const navItems = [
   { path: '/billing', icon: Receipt, label: 'Billing' },
   { path: '/kanban', icon: Columns3, label: 'Kanban' },
   { path: '/communications', icon: MessageSquare, label: 'Communications' },
-  { path: '/rooms', icon: BedDouble, label: 'Rooms & Groups' },
+  { 
+    label: 'Rooms & Groups', 
+    icon: Home, 
+    isDropdown: true,
+    children: [
+      { path: '/rooms', icon: BedDouble, label: 'Rooms' },
+      { path: '/groups', icon: FolderTree, label: 'Groups' },
+    ]
+  },
   { path: '/financial', icon: TrendingUp, label: 'Financial' },
   { path: '/data-center', icon: Database, label: 'Data Center' },
   { path: '/settings', icon: Settings, label: 'Settings' },
