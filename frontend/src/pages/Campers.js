@@ -169,6 +169,9 @@ function Campers() {
   const [gradeFilter, setGradeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   
+  // Photo zoom state
+  const [zoomedPhoto, setZoomedPhoto] = useState(null);
+  
   // Dialog states
   const [showAddCamper, setShowAddCamper] = useState(false);
   const [newCamper, setNewCamper] = useState({
