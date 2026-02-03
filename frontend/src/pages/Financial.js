@@ -28,7 +28,9 @@ import {
   TrendingDown,
   DollarSign,
   PieChart,
-  BarChart3
+  BarChart3,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import {
   PieChart as RechartsPie,
