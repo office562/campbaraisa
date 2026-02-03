@@ -104,6 +104,18 @@ function Billing() {
   const [stripeInvoice, setStripeInvoice] = useState(null);
   const [stripeAmount, setStripeAmount] = useState('');
   const [processingStripe, setProcessingStripe] = useState(false);
+  
+  // Installment setup
+  const [showInstallmentDialog, setShowInstallmentDialog] = useState(false);
+  const [installmentInvoice, setInstallmentInvoice] = useState(null);
+  const [numInstallments, setNumInstallments] = useState(3);
+  
+  // View invoice detail
+  const [viewingInvoice, setViewingInvoice] = useState(null);
+  
+  // Deleted invoices
+  const [showTrash, setShowTrash] = useState(false);
+  const [deletedInvoices, setDeletedInvoices] = useState([]);
 
   useEffect(() => {
     fetchData();
