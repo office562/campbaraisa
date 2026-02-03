@@ -56,7 +56,7 @@ const Login = () => {
     <div 
       className="min-h-screen flex flex-col items-center justify-center p-4 relative"
       style={{
-        backgroundImage: 'url(https://images.unsplash.com/photo-1605999211498-1a6cf07fc10d?crop=entropy&cs=srgb&fm=jpg&q=85)',
+        backgroundImage: 'url(https://images.unsplash.com/photo-1628111807066-323ae240b363?crop=entropy&cs=srgb&fm=jpg&q=85)',
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
@@ -65,18 +65,22 @@ const Login = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
       
       <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
+        {/* Logo - Much Bigger */}
         <div className="text-center mb-8">
           <img 
             src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/e2cf1yq8_IMG_4388.PNG" 
             alt="Camp Baraisa" 
-            className="w-32 h-32 mx-auto object-contain mb-4"
+            className="w-48 h-48 mx-auto object-contain mb-4"
           />
-          <h1 className="font-heading text-4xl font-black text-white tracking-tight">
+          <h1 className="font-heading text-5xl font-black text-white tracking-tight">
             CAMP BARAISA
           </h1>
-          <p className="text-white/90 text-lg mt-2">The Ultimate Bein Hazmanim Experience</p>
-          <p className="text-white/70 text-sm italic">For the serious Ben Torah.</p>
+          <p className="text-white/90 text-xl mt-3 font-medium">
+            The Ultimate Bein Hazmanim Experience
+          </p>
+          <p className="text-[#F4A261] text-lg mt-1 font-semibold">
+            for the serious Ben Torah
+          </p>
         </div>
 
         <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0">
