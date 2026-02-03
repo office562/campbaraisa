@@ -516,7 +516,7 @@ export default function Groups() {
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">Create Subgroup</DialogTitle>
             <DialogDescription>
-              Create a subgroup under "{selectedParentGroup?.name}"
+              Create a subgroup under {selectedParentGroup?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
