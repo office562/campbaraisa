@@ -255,6 +255,41 @@ function Campers() {
     return 'No parent info';
   }
 
+  // Contact action handlers
+  function handleCall(e, phone) {
+    e.stopPropagation();
+    if (phone) {
+      window.location.href = 'tel:' + phone;
+    } else {
+      toast.error('No phone number available');
+    }
+  }
+
+  function handleText(e, phone) {
+    e.stopPropagation();
+    if (phone) {
+      window.location.href = 'sms:' + phone;
+    } else {
+      toast.error('No phone number available');
+    }
+  }
+
+  function handleEmail(e, email) {
+    e.stopPropagation();
+    if (email) {
+      window.location.href = 'mailto:' + email;
+    } else {
+      toast.error('No email available');
+    }
+  }
+
+  function handlePhotoClick(e, photoUrl, camperName) {
+    e.stopPropagation();
+    if (photoUrl) {
+      setZoomedPhoto({ url: photoUrl, name: camperName });
+    }
+  }
+
   const filteredCampers = campers.filter(function(camper) {
     const matchesSearch = 
       camper.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
