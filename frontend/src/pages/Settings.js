@@ -138,7 +138,8 @@ function Settings() {
     resend_enabled: false,
     email_provider: 'none',
     stripe_api_key: '',
-    jotform_api_key: ''
+    jotform_api_key: '',
+    portal_links_enabled: true
   });
   const [showKeys, setShowKeys] = useState({});
 
