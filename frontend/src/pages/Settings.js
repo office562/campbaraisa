@@ -801,62 +801,166 @@ function Settings() {
 
         {/* API Keys Tab */}
         <TabsContent value="integrations">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* Email Provider Selection */}
             <Card className="card-camp">
               <CardHeader>
-                <CardTitle className="font-heading text-xl flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-green-500" />
-                  Twilio (SMS)
-                </CardTitle>
+                <CardTitle className="font-heading text-xl">Email Provider</CardTitle>
+                <CardDescription>Choose which email service to use for sending communications</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Account SID</Label>
-                  <Input value={apiKeys.twilio_account_sid} onChange={(e) => setApiKeys({ ...apiKeys, twilio_account_sid: e.target.value })} placeholder="AC..." />
-                </div>
-                <div>
-                  <Label>Auth Token</Label>
-                  <div className="relative">
-                    <Input type={showKeys.twilio_auth ? 'text' : 'password'} value={apiKeys.twilio_auth_token} onChange={(e) => setApiKeys({ ...apiKeys, twilio_auth_token: e.target.value })} />
-                    <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, twilio_auth: !showKeys.twilio_auth })}>
-                      {showKeys.twilio_auth ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </Button>
+              <CardContent>
+                <div className="flex gap-4">
+                  <div
+                    className={`flex-1 p-4 rounded-lg border-2 cursor-pointer transition-colors ${apiKeys.email_provider === 'resend' ? 'border-[#E85D04] bg-[#E85D04]/5' : 'border-gray-200 hover:border-gray-300'}`}
+                    onClick={() => setApiKeys({ ...apiKeys, email_provider: 'resend' })}
+                  >
+                    <p className="font-medium">Resend</p>
+                    <p className="text-sm text-muted-foreground">100 free emails/day</p>
                   </div>
-                </div>
-                <div>
-                  <Label>Phone Number</Label>
-                  <Input value={apiKeys.twilio_phone_number} onChange={(e) => setApiKeys({ ...apiKeys, twilio_phone_number: e.target.value })} placeholder="+1..." />
+                  <div
+                    className={`flex-1 p-4 rounded-lg border-2 cursor-pointer transition-colors ${apiKeys.email_provider === 'gmail' ? 'border-[#E85D04] bg-[#E85D04]/5' : 'border-gray-200 hover:border-gray-300'}`}
+                    onClick={() => setApiKeys({ ...apiKeys, email_provider: 'gmail' })}
+                  >
+                    <p className="font-medium">Gmail API</p>
+                    <p className="text-sm text-muted-foreground">Use your Gmail account</p>
+                  </div>
+                  <div
+                    className={`flex-1 p-4 rounded-lg border-2 cursor-pointer transition-colors ${apiKeys.email_provider === 'none' ? 'border-[#E85D04] bg-[#E85D04]/5' : 'border-gray-200 hover:border-gray-300'}`}
+                    onClick={() => setApiKeys({ ...apiKeys, email_provider: 'none' })}
+                  >
+                    <p className="font-medium">None</p>
+                    <p className="text-sm text-muted-foreground">Emails disabled</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="card-camp">
-              <CardHeader>
-                <CardTitle className="font-heading text-xl flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-red-500" />
-                  Gmail API
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Client ID</Label>
-                  <Input value={apiKeys.gmail_client_id} onChange={(e) => setApiKeys({ ...apiKeys, gmail_client_id: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Client Secret</Label>
-                  <div className="relative">
-                    <Input type={showKeys.gmail_secret ? 'text' : 'password'} value={apiKeys.gmail_client_secret} onChange={(e) => setApiKeys({ ...apiKeys, gmail_client_secret: e.target.value })} />
-                    <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, gmail_secret: !showKeys.gmail_secret })}>
-                      {showKeys.gmail_secret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Resend */}
+              <Card className={`card-camp ${apiKeys.email_provider === 'resend' ? 'ring-2 ring-[#E85D04]' : ''}`}>
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-purple-500" />
+                    Resend (Recommended)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>API Key</Label>
+                    <div className="relative">
+                      <Input type={showKeys.resend ? 'text' : 'password'} value={apiKeys.resend_api_key} onChange={(e) => setApiKeys({ ...apiKeys, resend_api_key: e.target.value })} placeholder="re_..." />
+                      <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, resend: !showKeys.resend })}>
+                        {showKeys.resend ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground">Get your API key at <a href="https://resend.com" target="_blank" rel="noreferrer" className="text-[#E85D04] hover:underline">resend.com</a></p>
+                </CardContent>
+              </Card>
+
+              {/* Gmail */}
+              <Card className={`card-camp ${apiKeys.email_provider === 'gmail' ? 'ring-2 ring-[#E85D04]' : ''}`}>
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-red-500" />
+                    Gmail API
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Client ID</Label>
+                    <Input value={apiKeys.gmail_client_id} onChange={(e) => setApiKeys({ ...apiKeys, gmail_client_id: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Client Secret</Label>
+                    <div className="relative">
+                      <Input type={showKeys.gmail_secret ? 'text' : 'password'} value={apiKeys.gmail_client_secret} onChange={(e) => setApiKeys({ ...apiKeys, gmail_client_secret: e.target.value })} />
+                      <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, gmail_secret: !showKeys.gmail_secret })}>
+                        {showKeys.gmail_secret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Twilio SMS */}
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-green-500" />
+                    Twilio (SMS)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Account SID</Label>
+                    <Input value={apiKeys.twilio_account_sid} onChange={(e) => setApiKeys({ ...apiKeys, twilio_account_sid: e.target.value })} placeholder="AC..." />
+                  </div>
+                  <div>
+                    <Label>Auth Token</Label>
+                    <div className="relative">
+                      <Input type={showKeys.twilio_auth ? 'text' : 'password'} value={apiKeys.twilio_auth_token} onChange={(e) => setApiKeys({ ...apiKeys, twilio_auth_token: e.target.value })} />
+                      <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, twilio_auth: !showKeys.twilio_auth })}>
+                        {showKeys.twilio_auth ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Phone Number</Label>
+                    <Input value={apiKeys.twilio_phone_number} onChange={(e) => setApiKeys({ ...apiKeys, twilio_phone_number: e.target.value })} placeholder="+1..." />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stripe */}
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <Key className="w-5 h-5 text-purple-600" />
+                    Stripe (Payments)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>API Secret Key</Label>
+                    <div className="relative">
+                      <Input type={showKeys.stripe ? 'text' : 'password'} value={apiKeys.stripe_api_key} onChange={(e) => setApiKeys({ ...apiKeys, stripe_api_key: e.target.value })} placeholder="sk_..." />
+                      <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, stripe: !showKeys.stripe })}>
+                        {showKeys.stripe ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">For credit card payments via parent portal</p>
+                </CardContent>
+              </Card>
+
+              {/* JotForm */}
+              <Card className="card-camp">
+                <CardHeader>
+                  <CardTitle className="font-heading text-xl flex items-center gap-2">
+                    <Key className="w-5 h-5 text-orange-500" />
+                    JotForm
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>API Key</Label>
+                    <div className="relative">
+                      <Input type={showKeys.jotform ? 'text' : 'password'} value={apiKeys.jotform_api_key} onChange={(e) => setApiKeys({ ...apiKeys, jotform_api_key: e.target.value })} />
+                      <Button variant="ghost" size="sm" className="absolute right-1 top-1" onClick={() => setShowKeys({ ...showKeys, jotform: !showKeys.jotform })}>
+                        {showKeys.jotform ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">For form integrations</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Button className="btn-camp-primary" onClick={handleSaveApiKeys}>
+              <Save className="w-4 h-4 mr-2" /> Save API Keys
+            </Button>
           </div>
-          <Button className="btn-camp-primary mt-6" onClick={handleSaveApiKeys}>
-            <Save className="w-4 h-4 mr-2" /> Save API Keys
-          </Button>
         </TabsContent>
 
         {/* Trash Tab */}
