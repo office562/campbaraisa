@@ -12,7 +12,6 @@ import Billing from "@/pages/Billing";
 import Kanban from "@/pages/Kanban";
 import Communications from "@/pages/Communications";
 import Rooms from "@/pages/Rooms";
-import Groups from "@/pages/Groups";
 import Financial from "@/pages/Financial";
 import DataCenter from "@/pages/DataCenter";
 import Settings from "@/pages/Settings";
