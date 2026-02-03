@@ -174,7 +174,7 @@ function Apply() {
     <div 
       className="min-h-screen py-8 px-4"
       style={{
-        backgroundImage: 'url(https://images.unsplash.com/photo-1605999211498-1a6cf07fc10d?crop=entropy&cs=srgb&fm=jpg&q=85)',
+        backgroundImage: 'url(https://images.unsplash.com/photo-1628111807066-323ae240b363?crop=entropy&cs=srgb&fm=jpg&q=85)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
@@ -188,12 +188,14 @@ function Apply() {
           <img 
             src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/e2cf1yq8_IMG_4388.PNG" 
             alt="Camp Baraisa" 
-            className="w-24 h-24 mx-auto object-contain mb-4"
+            className="w-32 h-32 mx-auto object-contain mb-4"
           />
           <h1 className="font-heading text-4xl font-black text-white tracking-tight">
             Camp Baraisa
           </h1>
-          <p className="text-white/80 text-lg mt-2">Summer 2026 Application</p>
+          <p className="text-white/90 text-lg mt-2">The Ultimate Bein Hazmanim Experience</p>
+          <p className="text-[#F4A261] font-semibold">for the serious Ben Torah</p>
+          <p className="text-white/70 text-sm mt-3">Summer 2026 Application</p>
         </div>
 
         {/* Progress */}
