@@ -1529,6 +1529,173 @@ async def send_invoice_reminder(invoice_id: str, admin=Depends(get_current_admin
     
     return {"message": "Reminder sent", "next_reminder_date": next_reminder}
 
+@api_router.put("/invoices/{invoice_id}")
+async def update_invoice(invoice_id: str, data: dict, admin=Depends(get_current_admin)):
+    """Update invoice details"""
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    allowed_fields = ["description", "due_date", "notes", "discount_amount", "discount_description", "line_items", "status"]
+    update_data = {k: v for k, v in data.items() if k in allowed_fields}
+    
+    # Recalculate amount if line_items changed
+    if "line_items" in update_data:
+        total = sum(item.get("amount", 0) * item.get("quantity", 1) for item in update_data["line_items"])
+        discount = update_data.get("discount_amount", invoice.get("discount_amount", 0))
+        update_data["amount"] = total - discount
+    
+    if update_data:
+        await db.invoices.update_one({"id": invoice_id}, {"$set": update_data})
+    
+    updated = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    return updated
+
+@api_router.post("/invoices/{invoice_id}/send")
+async def send_invoice(invoice_id: str, admin=Depends(get_current_admin)):
+    """Mark invoice as sent and update status"""
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {
+            "status": "sent",
+            "sent_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Log activity
+    await log_activity(
+        entity_type="camper",
+        entity_id=invoice["camper_id"],
+        action="invoice_sent",
+        details={"invoice_id": invoice_id, "amount": invoice["amount"]},
+        performed_by=admin.get("id")
+    )
+    
+    # Create communication log
+    camper = await db.campers.find_one({"id": invoice["camper_id"]}, {"_id": 0})
+    if camper:
+        comm_doc = {
+            "id": str(uuid.uuid4()),
+            "camper_id": invoice["camper_id"],
+            "type": "email",
+            "subject": f"Invoice from Camp Baraisa - {camper.get('first_name')} {camper.get('last_name')}",
+            "message": f"Invoice #{invoice.get('invoice_number', invoice_id[:8])} for ${invoice['amount']}",
+            "direction": "outbound",
+            "status": "sent",
+            "recipient_email": camper.get("parent_email"),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.communications.insert_one(comm_doc)
+    
+    return {"message": "Invoice sent", "status": "sent"}
+
+@api_router.delete("/invoices/{invoice_id}")
+async def delete_invoice(invoice_id: str, admin=Depends(get_current_admin)):
+    """Soft delete an invoice (move to trash)"""
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Soft delete - mark as deleted
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Reduce camper balance
+    unpaid = invoice["amount"] - invoice.get("paid_amount", 0)
+    if unpaid > 0:
+        await db.campers.update_one(
+            {"id": invoice["camper_id"]},
+            {"$inc": {"total_balance": -unpaid}}
+        )
+    
+    await log_activity(
+        entity_type="camper",
+        entity_id=invoice["camper_id"],
+        action="invoice_deleted",
+        details={"invoice_id": invoice_id, "amount": invoice["amount"]},
+        performed_by=admin.get("id")
+    )
+    
+    return {"message": "Invoice deleted"}
+
+@api_router.get("/invoices/trash/list")
+async def list_deleted_invoices(admin=Depends(get_current_admin)):
+    """Get all deleted invoices"""
+    invoices = await db.invoices.find({"is_deleted": True}, {"_id": 0}).to_list(1000)
+    return invoices
+
+@api_router.post("/invoices/{invoice_id}/restore")
+async def restore_invoice(invoice_id: str, admin=Depends(get_current_admin)):
+    """Restore a deleted invoice"""
+    invoice = await db.invoices.find_one({"id": invoice_id, "is_deleted": True}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found in trash")
+    
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {"is_deleted": False}, "$unset": {"deleted_at": ""}}
+    )
+    
+    # Restore camper balance
+    unpaid = invoice["amount"] - invoice.get("paid_amount", 0)
+    if unpaid > 0:
+        await db.campers.update_one(
+            {"id": invoice["camper_id"]},
+            {"$inc": {"total_balance": unpaid}}
+        )
+    
+    return {"message": "Invoice restored"}
+
+@api_router.post("/invoices/{invoice_id}/installments")
+async def setup_installments(invoice_id: str, data: dict, admin=Depends(get_current_admin)):
+    """Set up installment plan for an existing invoice"""
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    num_installments = data.get("num_installments", 3)
+    dates = data.get("dates", [])
+    
+    total_amount = invoice["amount"] - invoice.get("paid_amount", 0)
+    installment_amount = round(total_amount / num_installments, 2)
+    
+    # Generate dates if not provided
+    if not dates or len(dates) != num_installments:
+        base_date = datetime.strptime(invoice.get("due_date", datetime.now().strftime("%Y-%m-%d")), "%Y-%m-%d")
+        dates = [(base_date + timedelta(days=30 * i)).strftime("%Y-%m-%d") for i in range(num_installments)]
+    
+    schedule = []
+    for i, date in enumerate(dates):
+        amt = installment_amount if i < num_installments - 1 else round(total_amount - (installment_amount * (num_installments - 1)), 2)
+        schedule.append({
+            "id": str(uuid.uuid4()),
+            "installment_number": i + 1,
+            "due_date": date,
+            "amount": amt,
+            "status": "pending",
+            "paid_date": None
+        })
+    
+    installment_plan = {
+        "id": str(uuid.uuid4()),
+        "total_amount": total_amount,
+        "num_installments": num_installments,
+        "schedule": schedule
+    }
+    
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {"installment_plan": installment_plan}}
+    )
+    
+    return {"message": "Installment plan created", "plan": installment_plan}
+
 # ==================== PAYMENT ROUTES ====================
 
 @api_router.post("/payments", response_model=PaymentResponse)
