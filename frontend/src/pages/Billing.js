@@ -628,34 +628,46 @@ function Billing() {
                 const camper = campers.find(c => c.id === invoice.camper_id);
                 const balance = invoice.amount - invoice.paid_amount;
                 return (
-                  <TableRow key={invoice.id}>
+                  <TableRow key={invoice.id} className="hover:bg-gray-50">
+                    <TableCell className="font-mono text-sm">{invoice.invoice_number || invoice.id.slice(0, 8)}</TableCell>
                     <TableCell className="font-medium">{getCamperName(invoice.camper_id)}</TableCell>
                     <TableCell>{camper ? getParentName(camper) : '-'}</TableCell>
-                    <TableCell>{invoice.description}</TableCell>
                     <TableCell className="text-right">${invoice.amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[#2A9D8F]">${invoice.paid_amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[#2A9D8F]">${(invoice.paid_amount || 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right text-[#E76F51]">${balance.toLocaleString()}</TableCell>
                     <TableCell>
-                      <Badge className={
-                        invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
-                        invoice.status === 'partial' ? 'bg-amber-100 text-amber-800' :
-                        'bg-blue-100 text-blue-800'
-                      }>{invoice.status}</Badge>
+                      <Badge className={getStatusBadge(invoice.status)}>{invoice.status || 'draft'}</Badge>
+                      {invoice.installment_plan && (
+                        <Badge variant="outline" className="ml-1 text-xs">
+                          <Calendar className="w-3 h-3 mr-1" />Plan
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>{invoice.due_date || '-'}</TableCell>
                     <TableCell className="text-right">
-                      {balance > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-[#E85D04] border-[#E85D04] hover:bg-[#E85D04]/10"
-                          onClick={() => openStripeDialog(invoice)}
-                          data-testid={`charge-card-${invoice.id}`}
-                        >
-                          <CreditCard className="w-3 h-3 mr-1" />
-                          Charge
+                      <div className="flex justify-end gap-1">
+                        {invoice.status === 'draft' && (
+                          <Button variant="ghost" size="sm" onClick={() => handleSendInvoice(invoice.id)} title="Send Invoice">
+                            <Send className="w-4 h-4 text-blue-600" />
+                          </Button>
+                        )}
+                        {balance > 0 && (
+                          <Button variant="ghost" size="sm" onClick={() => openStripeDialog(invoice)} title="Charge Card">
+                            <CreditCard className="w-4 h-4 text-green-600" />
+                          </Button>
+                        )}
+                        {balance > 0 && !invoice.installment_plan && (
+                          <Button variant="ghost" size="sm" onClick={() => { setInstallmentInvoice(invoice); setShowInstallmentDialog(true); }} title="Setup Installments">
+                            <Clock className="w-4 h-4 text-purple-600" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => setViewingInvoice(invoice)} title="View Details">
+                          <Eye className="w-4 h-4 text-gray-600" />
                         </Button>
-                      )}
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteInvoice(invoice.id)} title="Delete">
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
