@@ -589,11 +589,16 @@ function Billing() {
               <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
                 <SelectItem value="partial">Partial</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="outline" onClick={fetchDeletedInvoices}>
+              <Trash2 className="w-4 h-4 mr-2" />Trash
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -607,9 +612,9 @@ function Billing() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>#</TableHead>
                 <TableHead>Camper</TableHead>
                 <TableHead>Parent</TableHead>
-                <TableHead>Description</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-right">Paid</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
