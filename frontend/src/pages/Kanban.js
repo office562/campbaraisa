@@ -57,6 +57,27 @@ const EMAIL_TRIGGERS = {
 };
 
 function CamperCard({ camper, onDragStart, onClick }) {
+  const handleCall = (e) => {
+    e.stopPropagation();
+    if (camper.parent_phone) {
+      window.location.href = 'tel:' + camper.parent_phone;
+    }
+  };
+  
+  const handleSMS = (e) => {
+    e.stopPropagation();
+    if (camper.parent_phone) {
+      window.location.href = 'sms:' + camper.parent_phone;
+    }
+  };
+  
+  const handleEmail = (e) => {
+    e.stopPropagation();
+    if (camper.parent_email) {
+      window.location.href = 'mailto:' + camper.parent_email;
+    }
+  };
+
   // Calculate days until due or overdue
   const getDueDateInfo = () => {
     if (!camper.due_date) return null;
