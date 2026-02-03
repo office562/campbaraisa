@@ -426,7 +426,17 @@ class SettingsBase(BaseModel):
     camp_phone: Optional[str] = None
     quickbooks_sync: bool = False
     twilio_enabled: bool = False
+    twilio_account_sid: Optional[str] = None
+    twilio_auth_token: Optional[str] = None
+    twilio_phone_number: Optional[str] = None
     gmail_enabled: bool = False
+    gmail_client_id: Optional[str] = None
+    gmail_client_secret: Optional[str] = None
+    resend_enabled: bool = False
+    resend_api_key: Optional[str] = None
+    email_provider: str = "none"  # none, gmail, resend
+    stripe_api_key: Optional[str] = None
+    jotform_api_key: Optional[str] = None
 
 class SettingsResponse(SettingsBase):
     model_config = ConfigDict(extra="ignore")
