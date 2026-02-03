@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -14,10 +14,7 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  ChevronDown,
-  Search,
-  FolderTree,
-  Home
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,15 +27,7 @@ const navItems = [
   { path: '/billing', icon: Receipt, label: 'Billing' },
   { path: '/kanban', icon: Columns3, label: 'Kanban' },
   { path: '/communications', icon: MessageSquare, label: 'Communications' },
-  { 
-    label: 'Rooms & Groups', 
-    icon: Home, 
-    isDropdown: true,
-    children: [
-      { path: '/rooms', icon: BedDouble, label: 'Rooms' },
-      { path: '/groups', icon: FolderTree, label: 'Groups' },
-    ]
-  },
+  { path: '/rooms', icon: BedDouble, label: 'Rooms & Groups' },
   { path: '/financial', icon: TrendingUp, label: 'Financial' },
   { path: '/data-center', icon: Database, label: 'Data Center' },
   { path: '/settings', icon: Settings, label: 'Settings' },
@@ -47,23 +36,10 @@ const navItems = [
 const Sidebar = ({ onClose }) => {
   const { admin, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [openDropdowns, setOpenDropdowns] = useState({});
 
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const toggleDropdown = (label) => {
-    setOpenDropdowns(prev => ({
-      ...prev,
-      [label]: !prev[label]
-    }));
-  };
-
-  const isChildActive = (children) => {
-    return children.some(child => location.pathname === child.path);
   };
 
   return (
@@ -86,65 +62,22 @@ const Sidebar = ({ onClose }) => {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
         <nav className="px-3 space-y-1">
-          {navItems.map((item) => {
-            if (item.isDropdown) {
-              const isOpen = openDropdowns[item.label] || isChildActive(item.children);
-              return (
-                <div key={item.label}>
-                  <button
-                    onClick={() => toggleDropdown(item.label)}
-                    className={`sidebar-link w-full justify-between ${isChildActive(item.children) ? 'sidebar-link-active' : ''}`}
-                    data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
-                    </div>
-                    {isOpen ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                  </button>
-                  {isOpen && (
-                    <div className="ml-6 mt-1 space-y-1">
-                      {item.children.map(child => (
-                        <NavLink
-                          key={child.path}
-                          to={child.path}
-                          onClick={onClose}
-                          className={({ isActive }) =>
-                            `sidebar-link text-sm py-2 ${isActive ? 'sidebar-link-active' : ''}`
-                          }
-                          data-testid={`nav-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
-                        >
-                          <child.icon className="w-4 h-4" />
-                          <span className="font-medium">{child.label}</span>
-                        </NavLink>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.exact}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
-                }
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-                <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-              </NavLink>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.exact}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
+              }
+              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="font-medium">{item.label}</span>
+              <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            </NavLink>
+          ))}
         </nav>
       </ScrollArea>
 
