@@ -1970,7 +1970,8 @@ async def get_saved_report(report_id: str, admin=Depends(get_current_admin)):
     # Sort if configured
     if report.get("sort_by"):
         reverse = report.get("sort_order", "asc") == "desc"
-        campers.sort(key=lambda x: x.get(report["sort_by"], ""), reverse=reverse)
+        sort_key = report["sort_by"]
+        campers.sort(key=lambda x: (x.get(sort_key) is None, x.get(sort_key, "") or ""), reverse=reverse)
     
     # Filter to only requested columns
     columns = report.get("columns", [])
