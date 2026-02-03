@@ -253,17 +253,25 @@ class RoomResponse(RoomBase):
 # Groups Model (for shiurim, trips, transportation, etc.)
 class GroupBase(BaseModel):
     name: str
-    type: str  # shiur, transportation, trip, room, custom
+    type: Optional[str] = "custom"  # shiur, transportation, trip, room, custom
     capacity: Optional[int] = None
     description: Optional[str] = None
+    parent_id: Optional[str] = None  # For hierarchical groups
 
-class GroupCreate(GroupBase):
-    pass
+class GroupCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    parent_id: Optional[str] = None
+
+class GroupUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 class GroupResponse(GroupBase):
     model_config = ConfigDict(extra="ignore")
     id: str
     assigned_campers: List[str] = []
+    camper_ids: List[str] = []  # Alias for frontend
     created_at: Optional[datetime] = None
 
 # Activity Log Model
