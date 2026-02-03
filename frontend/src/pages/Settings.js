@@ -957,6 +957,29 @@ function Settings() {
               </Card>
             </div>
 
+            {/* Portal Settings */}
+            <Card className="card-camp mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Portal Settings</CardTitle>
+                <CardDescription>Control parent portal access</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base">Parent Portal Links</Label>
+                    <p className="text-sm text-muted-foreground">When disabled, all portal links will stop working (good for end of season)</p>
+                  </div>
+                  <Button
+                    variant={apiKeys.portal_links_enabled !== false ? "default" : "outline"}
+                    onClick={() => setApiKeys({ ...apiKeys, portal_links_enabled: apiKeys.portal_links_enabled === false ? true : false })}
+                    className={apiKeys.portal_links_enabled !== false ? "bg-green-600 hover:bg-green-700" : ""}
+                  >
+                    {apiKeys.portal_links_enabled !== false ? 'Enabled' : 'Disabled'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <Button className="btn-camp-primary" onClick={handleSaveApiKeys}>
               <Save className="w-4 h-4 mr-2" /> Save API Keys
             </Button>
