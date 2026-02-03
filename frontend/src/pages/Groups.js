@@ -481,7 +481,7 @@ export default function Groups() {
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">Create Group</DialogTitle>
             <DialogDescription>
-              Create a parent group like "Transportation", "Shiurim", "Activities", etc.
+              Create a parent group like Transportation, Shiurim, Activities, etc.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
