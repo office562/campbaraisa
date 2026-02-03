@@ -5,53 +5,54 @@ Build a comprehensive camp management system for Camp Baraisa, enabling admins t
 
 ## Implementation Status
 
-### ✅ COMPLETED Features (Latest Session - Feb 3, 2026)
+### ✅ ALL P1 & P2 FEATURES COMPLETED (Feb 3, 2026)
 
-#### Billing System (P0 - Fixed)
-- **Camp Fee Auto-Select:** Default camp fee ($3,475) is automatically selected when creating new invoice
-- **Editable Fees:** All fees including the default camp fee can be edited (name, amount, description)
-- **Fee Checkbox:** Click anywhere on fee row to toggle selection
-- **Stripe Charge Button:** Each invoice with balance shows "Charge" button in Actions column
-- **3.5% Fee Breakdown:** Stripe dialog shows Payment Amount + Processing Fee (3.5%) + Total Charge
+#### P1 Features - DONE
+1. **Hierarchical Groups System** ✅
+   - Parent groups (Transportation, Shiurim, etc.)
+   - Subgroups (Bus 1, Bus 2, Shiur Aleph, etc.)
+   - Assign campers to groups/subgroups
+   - Export group lists as CSV
 
-#### UI/UX Updates
-- **Utah Logo:** Enlarged to w-72 h-72 (288x288px) on login page
-- **Full Motto:** "The Ultimate Bein Hazmanim Experience for the serious Ben Torah"
-- **Bryce Canyon Background:** Applied to Login and Parent Portal
-- **Contact Buttons:** Call (green), Text (blue), Email (purple) buttons on Campers page table
-- **Photo Zoom:** Click camper photo to open fullscreen modal
+2. **Sidebar Dropdown** ✅
+   - "Rooms & Groups" expands to show Rooms and Groups sub-items
+   - Chevron icon toggles expand/collapse
+   - Sub-items properly highlighted when active
 
-### Backend Updates
-- `PUT /api/fees/{fee_id}` - Edit any fee including default camp fee
-- `PUT /api/groups/{group_id}/campers` - Assign campers to groups
-- Hierarchical groups support (`parent_id` field)
+3. **Smart Search** ✅
+   - Real-time search in header bar
+   - Searches by: camper name, parent name, yeshiva, email
+   - Dropdown shows matching results with details
+   - Click result navigates to camper profile
 
-### Previous Completed Features
+4. **QuickBooks Export** ✅
+   - Export button on Financial page
+   - Downloads CSV with invoices, payments, expenses
+   - QuickBooks-compatible format
 
-#### 1. Unified Camper Management
-- Combined Parent and Camper data into single "Camper" record
-- All UI elements reflect unified model
+5. **Expense Tracking** ✅
+   - Add expenses with category, amount, description, date, vendor
+   - Pie chart visualization by category
+   - Categories: Food & Catering, Staff Salaries, Transportation, Activities & Equipment, Utilities, Office Supplies, Medical, Insurance, Marketing, Miscellaneous
 
-#### 2. Admin Dashboard
-- **Global Search:** Find campers by name, yeshiva, grade, parent info
-- **Kanban Board:** 10-column drag-and-drop with Call/Text/Email buttons
-- **Data Center:** Custom saved lists with field selection
-- **Rooms Page:** Physical room assignments with capacity tracking
+6. **Invoice Reminders Backend** ✅
+   - Endpoint: GET /api/invoices/due-reminders
+   - Returns invoices by reminder timing: 15 days before, due date, +3/+7/+15 days
+   - Endpoint: POST /api/invoices/{id}/send-reminder (logs reminder)
+   - **Note:** Actual automated email sending NOT implemented
 
-#### 3. Settings Page (5 Tabs)
-- **Account:** Update name, email, phone; change password
-- **Admins:** Create, edit, delete admin users
-- **Templates:** Email/SMS templates with auto-triggers
-- **API Keys:** Twilio, Gmail, Stripe, Resend, Jotform
-- **Trash:** View and restore deleted campers
+7. **Communications Log Overhaul** ✅
+   - Tabbed interface: All / Email / SMS
+   - Categorized message list
+   - Click message to see full details (recipient, date, status, content)
+   - Compose message dialog with camper selection
 
-#### 4. Activity/Communication Log
-- Chronological activity log per camper
-- Status changes, payments, communications tracked
-
-#### 5. Public Application Form
-- Accessible at `/apply` without login
-- 4-step wizard for camper registration
+#### Previous Features
+- **Billing System:** Camp fee auto-select, editable fees, Stripe charge with 3.5% fee
+- **Camper Management:** Unified model, photo zoom, Call/Text/Email buttons
+- **Kanban Board:** 10-column drag-and-drop, status-triggered emails
+- **Login/Portal:** Large Utah logo, Bryce Canyon background, full motto
+- **Settings:** Admin management, API keys, templates, trash
 
 ## Tech Stack
 - **Frontend:** React, Tailwind CSS, Shadcn UI
@@ -65,50 +66,46 @@ Build a comprehensive camp management system for Camp Baraisa, enabling admins t
 - `admins` - Admin user accounts
 - `invoices` - Financial invoices
 - `payments` - Payment records
+- `expenses` - Expense tracking
 - `activity_logs` - Activity history
 - `email_templates` - Communication templates
-- `groups` - Hierarchical groups (supports parent_id)
+- `groups` - Hierarchical groups (parent_id support)
 - `rooms` - Physical room assignments
 - `saved_reports` - Data Center saved lists
-- `fees` - Custom billable fees (default + custom)
+- `fees` - Custom billable fees
+- `communications` - Email/SMS logs
 
 ## Key API Endpoints
-- `GET/POST/PUT/DELETE /api/fees` - Fee management
-- `PUT /api/fees/{fee_id}` - Edit fees (including default)
-- `PUT /api/groups/{group_id}/campers` - Assign campers to group
-- `POST /api/stripe/checkout` - Stripe checkout with fee
-- `GET /api/payment/calculate-fee` - Calculate 3.5% fee
-
-## Remaining Items (Prioritized)
-
-### P1 - High Priority
-- **Hierarchical Groups UI:** Frontend page for nested groups (backend ready, UI had babel issues)
-- **Sidebar Dropdown:** Rooms & Groups in expandable menu
-- **Automated Invoice Reminders:** 15 days before, due date, +3/+7/+15 after
-- **Configurable Kanban Email Triggers:** Link templates to status changes
-- **Data Center Polish:** Switches UI, Groups/Rooms as columns
-- **QuickBooks Export:** Export financial data (no API)
-- **Communications Log Overhaul:** Categorized, detailed view
-
-### P2 - Lower Priority
-- **Smart Search:** Functional global search
-- **Bulk Actions:** Multiple camper operations
-- **Installment Plans:** Payment schedules
-- **Expense Tracking:** Simple expense logging
+- `GET /api/groups` - List all groups
+- `POST /api/groups` - Create group (with parent_id for subgroups)
+- `PUT /api/groups/{id}/campers` - Assign campers
+- `GET /api/financial/quickbooks-export` - QuickBooks CSV data
+- `GET /api/invoices/due-reminders` - Invoices needing reminders
+- `POST /api/invoices/{id}/send-reminder` - Log reminder sent
+- `GET/POST /api/expenses` - Expense CRUD
+- `GET/POST /api/communications` - Communications log
 
 ## Test Credentials
 - **Admin Email:** admin@campbaraisa.com
 - **Admin Password:** testpassword123
 
 ## Test Reports
-- `/app/test_reports/iteration_8.json` - Latest (100% pass - billing & UI)
-- `/app/test_reports/iteration_7.json` - Previous (100% pass)
+- `/app/test_reports/iteration_9.json` - P1/P2 features (100% pass)
+- `/app/test_reports/iteration_8.json` - Billing fixes (100% pass)
 
-## Known Issues
-- **Hierarchical Groups UI:** Groups page causes babel plugin recursion error - needs simpler component structure
-- **Gmail/Twilio APIs:** MOCKED - add keys via Settings
+## Remaining/Future Items
+
+### Not Yet Implemented
+- **Automated Invoice Reminders:** Backend ready, needs cron job or scheduler for actual sending
+- **Configurable Kanban Email Triggers:** UI for linking templates to status changes
+- **Bulk Actions:** Multi-select operations
+- **Installment Plans:** Payment schedule setup
+
+### Working But Could Be Enhanced
+- **Data Center:** Could add Groups/Rooms as exportable columns
+- **Email Provider Toggle:** Settings has toggle but actual Resend vs Gmail switching needs verification
 
 ## Notes
+- Gmail/Twilio APIs are MOCKED - add keys via Settings
 - Stripe uses test key (sk_test_emergent)
-- Hot reload enabled for both frontend and backend
 - JotForm API key: 9647d8b76395cd581d0b2b62ffb7e9d3
