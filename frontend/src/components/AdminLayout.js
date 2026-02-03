@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard,
@@ -14,44 +14,37 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  Search
+  ChevronDown,
+  Search,
+  FolderTree,
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
-const navItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Overview', exact: true },
-  { path: '/campers', icon: Users, label: 'Campers' },
-  { path: '/billing', icon: Receipt, label: 'Billing' },
-  { path: '/kanban', icon: Columns3, label: 'Kanban' },
-  { path: '/communications', icon: MessageSquare, label: 'Communications' },
-  { path: '/rooms', icon: BedDouble, label: 'Rooms & Groups' },
-  { path: '/financial', icon: TrendingUp, label: 'Financial' },
-  { path: '/data-center', icon: Database, label: 'Data Center' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
-];
+const Sidebar = function(props) {
+  var onClose = props.onClose;
+  var auth = useAuth();
+  var admin = auth.admin;
+  var logout = auth.logout;
+  var navigate = useNavigate();
+  var location = useLocation();
+  var [roomsOpen, setRoomsOpen] = useState(false);
 
-const Sidebar = ({ onClose }) => {
-  const { admin, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
+  function handleLogout() {
     logout();
     navigate('/login');
-  };
+  }
+
+  var isRoomsActive = location.pathname === '/rooms' || location.pathname === '/groups';
 
   return (
     <div className="flex flex-col h-full bg-[#2D241E] text-white">
-      {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img 
-            src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/of4shzam_IMG_3441%202.jpg" 
-            alt="Camp Baraisa" 
-            className="w-12 h-12 object-contain rounded-lg bg-white p-1"
-          />
+          <img src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/of4shzam_IMG_3441%202.jpg" alt="Camp Baraisa" className="w-12 h-12 object-contain rounded-lg bg-white p-1" />
           <div>
             <h1 className="font-heading text-xl font-bold tracking-tight">CAMP BARAISA</h1>
             <p className="text-xs text-white/70">The Ultimate Bein Hazmanim Experience</p>
@@ -59,47 +52,65 @@ const Sidebar = ({ onClose }) => {
         </div>
       </div>
 
-      {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
         <nav className="px-3 space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.exact}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'sidebar-link-active' : ''}`
-              }
-              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-              <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-            </NavLink>
-          ))}
+          <NavLink to="/" end onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-overview">
+            <LayoutDashboard className="w-5 h-5" /><span className="font-medium">Overview</span>
+          </NavLink>
+          <NavLink to="/campers" onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-campers">
+            <Users className="w-5 h-5" /><span className="font-medium">Campers</span>
+          </NavLink>
+          <NavLink to="/billing" onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-billing">
+            <Receipt className="w-5 h-5" /><span className="font-medium">Billing</span>
+          </NavLink>
+          <NavLink to="/kanban" onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-kanban">
+            <Columns3 className="w-5 h-5" /><span className="font-medium">Kanban</span>
+          </NavLink>
+          <NavLink to="/communications" onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-communications">
+            <MessageSquare className="w-5 h-5" /><span className="font-medium">Communications</span>
+          </NavLink>
+          
+          <div>
+            <button onClick={function() { setRoomsOpen(!roomsOpen); }} className={'sidebar-link w-full justify-between ' + (isRoomsActive ? 'sidebar-link-active' : '')} data-testid="nav-rooms-groups">
+              <div className="flex items-center gap-3"><Home className="w-5 h-5" /><span className="font-medium">Rooms & Groups</span></div>
+              {roomsOpen || isRoomsActive ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+            {(roomsOpen || isRoomsActive) && (
+              <div className="ml-6 mt-1 space-y-1">
+                <NavLink to="/rooms" onClick={onClose} className={function(p) { return 'sidebar-link text-sm py-2 ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-rooms">
+                  <BedDouble className="w-4 h-4" /><span className="font-medium">Rooms</span>
+                </NavLink>
+                <NavLink to="/groups" onClick={onClose} className={function(p) { return 'sidebar-link text-sm py-2 ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-groups">
+                  <FolderTree className="w-4 h-4" /><span className="font-medium">Groups</span>
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          <NavLink to="/financial" onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-financial">
+            <TrendingUp className="w-5 h-5" /><span className="font-medium">Financial</span>
+          </NavLink>
+          <NavLink to="/data-center" onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-data-center">
+            <Database className="w-5 h-5" /><span className="font-medium">Data Center</span>
+          </NavLink>
+          <NavLink to="/settings" onClick={onClose} className={function(p) { return 'sidebar-link ' + (p.isActive ? 'sidebar-link-active' : ''); }} data-testid="nav-settings">
+            <Settings className="w-5 h-5" /><span className="font-medium">Settings</span>
+          </NavLink>
         </nav>
       </ScrollArea>
 
-      {/* User Section */}
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 mb-4 px-2">
           <div className="w-10 h-10 rounded-full bg-[#E85D04] flex items-center justify-center font-bold text-white">
-            {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
+            {admin && admin.name ? admin.name.charAt(0).toUpperCase() : 'A'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">{admin?.name || 'Admin'}</p>
-            <p className="text-xs text-white/60 truncate">{admin?.email}</p>
+            <p className="font-medium truncate">{admin ? admin.name : 'Admin'}</p>
+            <p className="text-xs text-white/60 truncate">{admin ? admin.email : ''}</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10"
-          onClick={handleLogout}
-          data-testid="logout-btn"
-        >
-          <LogOut className="w-5 h-5 mr-3" />
-          Sign Out
+        <Button variant="ghost" className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10" onClick={handleLogout} data-testid="logout-btn">
+          <LogOut className="w-5 h-5 mr-3" />Sign Out
         </Button>
       </div>
     </div>
