@@ -378,6 +378,9 @@ TEMPLATE_MERGE_FIELDS = {
         {"field": "{{total_balance}}", "label": "Total Balance"},
         {"field": "{{due_date}}", "label": "Payment Due Date"},
         {"field": "{{payment_link}}", "label": "Payment Portal Link"},
+        {"field": "{{portal_link}}", "label": "Parent Portal Link"},
+        {"field": "{{invoice_number}}", "label": "Invoice Number"},
+        {"field": "{{invoice_amount}}", "label": "Invoice Amount"},
     ],
     "camp": [
         {"field": "{{camp_name}}", "label": "Camp Name"},
