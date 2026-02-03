@@ -193,7 +193,7 @@ const ParentPortal = () => {
             <img 
               src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/e2cf1yq8_IMG_4388.PNG" 
               alt="Camp Baraisa" 
-              className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-white p-2 shadow-lg object-contain"
+              className="w-28 h-28 md:w-36 md:h-36 rounded-xl bg-white p-2 shadow-lg object-contain"
             />
             <div>
               <h1 className="font-heading text-3xl md:text-4xl font-bold text-white">

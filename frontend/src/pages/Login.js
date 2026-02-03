@@ -70,7 +70,7 @@ const Login = () => {
           <img 
             src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/e2cf1yq8_IMG_4388.PNG" 
             alt="Camp Baraisa" 
-            className="w-48 h-48 mx-auto object-contain mb-4"
+            className="w-72 h-72 mx-auto object-contain mb-4"
           />
           <h1 className="font-heading text-5xl font-black text-white tracking-tight">
             CAMP BARAISA
