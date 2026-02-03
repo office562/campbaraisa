@@ -501,11 +501,13 @@ function Billing() {
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Due</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredInvoices.length > 0 ? filteredInvoices.map(invoice => {
                 const camper = campers.find(c => c.id === invoice.camper_id);
+                const balance = invoice.amount - invoice.paid_amount;
                 return (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">{getCamperName(invoice.camper_id)}</TableCell>
@@ -513,7 +515,7 @@ function Billing() {
                     <TableCell>{invoice.description}</TableCell>
                     <TableCell className="text-right">${invoice.amount.toLocaleString()}</TableCell>
                     <TableCell className="text-right text-[#2A9D8F]">${invoice.paid_amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[#E76F51]">${(invoice.amount - invoice.paid_amount).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[#E76F51]">${balance.toLocaleString()}</TableCell>
                     <TableCell>
                       <Badge className={
                         invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-800' :
@@ -522,11 +524,25 @@ function Billing() {
                       }>{invoice.status}</Badge>
                     </TableCell>
                     <TableCell>{invoice.due_date || '-'}</TableCell>
+                    <TableCell className="text-right">
+                      {balance > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-[#E85D04] border-[#E85D04] hover:bg-[#E85D04]/10"
+                          onClick={() => openStripeDialog(invoice)}
+                          data-testid={`charge-card-${invoice.id}`}
+                        >
+                          <CreditCard className="w-3 h-3 mr-1" />
+                          Charge
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No invoices found</TableCell>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No invoices found</TableCell>
                 </TableRow>
               )}
             </TableBody>
