@@ -1733,12 +1733,19 @@ async def unassign_camper_from_room(room_id: str, camper_id: str, admin=Depends(
 
 # ==================== GROUPS ROUTES ====================
 
+class GroupCampersUpdate(BaseModel):
+    camper_ids: List[str]
+
 @api_router.post("/groups", response_model=GroupResponse)
 async def create_group(data: GroupCreate, admin=Depends(get_current_admin)):
     group_doc = {
         "id": str(uuid.uuid4()),
-        **data.model_dump(),
+        "name": data.name,
+        "description": data.description,
+        "parent_id": data.parent_id,
+        "type": "custom",
         "assigned_campers": [],
+        "camper_ids": [],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.groups.insert_one(group_doc)
@@ -1746,41 +1753,72 @@ async def create_group(data: GroupCreate, admin=Depends(get_current_admin)):
     group_doc["created_at"] = datetime.fromisoformat(group_doc["created_at"])
     return GroupResponse(**group_doc)
 
-@api_router.get("/groups", response_model=List[GroupResponse])
+@api_router.get("/groups")
 async def get_groups(type: Optional[str] = None, admin=Depends(get_current_admin)):
     query = {}
     if type:
         query["type"] = type
     groups = await db.groups.find(query, {"_id": 0}).to_list(500)
+    # Map assigned_campers to camper_ids for frontend compatibility
     for g in groups:
+        g["camper_ids"] = g.get("assigned_campers", []) or g.get("camper_ids", [])
         if g.get("created_at"):
             g["created_at"] = datetime.fromisoformat(g["created_at"]) if isinstance(g["created_at"], str) else g["created_at"]
-    return [GroupResponse(**g) for g in groups]
+    return groups
 
-@api_router.get("/groups/{group_id}", response_model=GroupResponse)
+@api_router.get("/groups/{group_id}")
 async def get_group(group_id: str, admin=Depends(get_current_admin)):
     group = await db.groups.find_one({"id": group_id}, {"_id": 0})
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
-    if group.get("created_at"):
-        group["created_at"] = datetime.fromisoformat(group["created_at"]) if isinstance(group["created_at"], str) else group["created_at"]
-    return GroupResponse(**group)
+    group["camper_ids"] = group.get("assigned_campers", []) or group.get("camper_ids", [])
+    return group
 
-@api_router.put("/groups/{group_id}", response_model=GroupResponse)
-async def update_group(group_id: str, data: GroupCreate, admin=Depends(get_current_admin)):
+@api_router.put("/groups/{group_id}")
+async def update_group(group_id: str, data: GroupUpdate, admin=Depends(get_current_admin)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
     result = await db.groups.update_one(
         {"id": group_id},
-        {"$set": data.model_dump()}
+        {"$set": update_data}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Group not found")
+    
     group = await db.groups.find_one({"id": group_id}, {"_id": 0})
-    if group.get("created_at"):
-        group["created_at"] = datetime.fromisoformat(group["created_at"]) if isinstance(group["created_at"], str) else group["created_at"]
-    return GroupResponse(**group)
+    group["camper_ids"] = group.get("assigned_campers", []) or group.get("camper_ids", [])
+    return group
+
+@api_router.put("/groups/{group_id}/campers")
+async def update_group_campers(group_id: str, data: GroupCampersUpdate, admin=Depends(get_current_admin)):
+    """Update the list of campers assigned to a group"""
+    result = await db.groups.update_one(
+        {"id": group_id},
+        {"$set": {"assigned_campers": data.camper_ids, "camper_ids": data.camper_ids}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    # Also update the campers' group references
+    await db.campers.update_many(
+        {"groups": group_id},
+        {"$pull": {"groups": group_id}}
+    )
+    for camper_id in data.camper_ids:
+        await db.campers.update_one(
+            {"id": camper_id},
+            {"$addToSet": {"groups": group_id}}
+        )
+    
+    return {"message": "Group campers updated"}
 
 @api_router.delete("/groups/{group_id}")
 async def delete_group(group_id: str, admin=Depends(get_current_admin)):
+    # Delete subgroups first
+    await db.groups.delete_many({"parent_id": group_id})
+    
     # Remove group reference from all campers
     group = await db.groups.find_one({"id": group_id}, {"_id": 0})
     if group:
