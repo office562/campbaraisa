@@ -478,6 +478,10 @@ class SettingsBase(BaseModel):
     email_provider: str = "none"  # none, gmail, resend
     stripe_api_key: Optional[str] = None
     jotform_api_key: Optional[str] = None
+    portal_links_enabled: bool = True  # Toggle to disable all portal links when season ends
+    auto_reminders_enabled: bool = True  # Enable automatic invoice reminders
+    reminder_days_before: int = 15  # Days before due date for first reminder
+    reminder_days_after: List[int] = [3, 7, 15]  # Days after due date for follow-up reminders
 
 class SettingsResponse(SettingsBase):
     model_config = ConfigDict(extra="ignore")
