@@ -353,6 +353,92 @@ function Billing() {
     return `${first} ${last}`.trim();
   };
 
+  // Delete invoice
+  const handleDeleteInvoice = async (invoiceId) => {
+    if (!window.confirm('Move this invoice to trash?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/invoices/${invoiceId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Invoice moved to trash');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete invoice');
+    }
+  };
+
+  // Send invoice
+  const handleSendInvoice = async (invoiceId) => {
+    try {
+      await axios.post(`${API_URL}/api/invoices/${invoiceId}/send`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Invoice marked as sent');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to send invoice');
+    }
+  };
+
+  // Setup installments
+  const handleSetupInstallments = async () => {
+    if (!installmentInvoice) return;
+    try {
+      await axios.post(`${API_URL}/api/invoices/${installmentInvoice.id}/installments`, {
+        num_installments: numInstallments
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Installment plan created');
+      setShowInstallmentDialog(false);
+      setInstallmentInvoice(null);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to create installment plan');
+    }
+  };
+
+  // Fetch deleted invoices
+  const fetchDeletedInvoices = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/invoices/trash/list`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDeletedInvoices(res.data || []);
+      setShowTrash(true);
+    } catch (error) {
+      toast.error('Failed to load deleted invoices');
+    }
+  };
+
+  // Restore invoice
+  const handleRestoreInvoice = async (invoiceId) => {
+    try {
+      await axios.post(`${API_URL}/api/invoices/${invoiceId}/restore`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Invoice restored');
+      fetchDeletedInvoices();
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to restore invoice');
+    }
+  };
+
+  // Get status badge color
+  const getStatusBadge = (status) => {
+    const styles = {
+      draft: 'bg-gray-100 text-gray-800',
+      sent: 'bg-blue-100 text-blue-800',
+      viewed: 'bg-purple-100 text-purple-800',
+      partial: 'bg-amber-100 text-amber-800',
+      paid: 'bg-emerald-100 text-emerald-800',
+      overdue: 'bg-red-100 text-red-800',
+      cancelled: 'bg-gray-100 text-gray-500'
+    };
+    return styles[status] || 'bg-gray-100 text-gray-800';
+  };
+
   // Search filter - searches by camper name, parent name, or last name
   const filteredInvoices = invoices.filter(invoice => {
     const camper = campers.find(c => c.id === invoice.camper_id);
