@@ -114,13 +114,7 @@ function Billing() {
       setInvoices(invoicesRes.data);
       setPayments(paymentsRes.data);
       setCampers(campersRes.data);
-      
-      // Initialize fees with camp fee if empty
-      const feesData = feesRes.data || [];
-      if (feesData.length === 0) {
-        feesData.push({ id: 'camp_fee', name: 'Camp Fee', amount: DEFAULT_CAMP_FEE, description: 'Summer 2026 Camp Fee', is_default: true });
-      }
-      setFees(feesData);
+      setFees(feesRes.data || []);
     } catch (error) {
       toast.error('Failed to fetch billing data');
     } finally {
