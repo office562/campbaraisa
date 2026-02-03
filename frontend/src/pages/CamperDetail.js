@@ -691,7 +691,8 @@ function CamperDetail() {
                   <img 
                     src={camper.photo_url} 
                     alt={camper.first_name + ' ' + camper.last_name}
-                    className="w-full h-48 object-cover rounded-lg"
+                    className="w-full h-48 object-cover rounded-lg cursor-pointer hover:ring-2 hover:ring-[#E85D04] transition-all"
+                    onClick={function() { setZoomedPhoto({ url: camper.photo_url, name: camper.first_name + ' ' + camper.last_name }); }}
                   />
                   <div>
                     <Label className="text-xs">Photo URL</Label>
