@@ -1136,11 +1136,16 @@ class FeeCreate(BaseModel):
     amount: float
     description: Optional[str] = None
 
+class FeeUpdate(BaseModel):
+    name: Optional[str] = None
+    amount: Optional[float] = None
+    description: Optional[str] = None
+
 @api_router.get("/fees")
 async def get_fees(admin=Depends(get_current_admin)):
     """Get all fees"""
     fees = await db.fees.find({}, {"_id": 0}).to_list(100)
-    # Add default camp fee if not exists
+    # Add default camp fee if not exists - save it to DB so it can be edited
     if not any(f.get("is_default") for f in fees):
         default_fee = {
             "id": "camp_fee_default",
@@ -1149,6 +1154,7 @@ async def get_fees(admin=Depends(get_current_admin)):
             "description": "Summer 2026 Camp Fee",
             "is_default": True
         }
+        await db.fees.insert_one(default_fee)
         fees.insert(0, default_fee)
     return fees
 
@@ -1164,9 +1170,22 @@ async def create_fee(data: FeeCreate, admin=Depends(get_current_admin)):
     await db.fees.insert_one(fee_doc)
     return {"message": "Fee created", "id": fee_doc["id"]}
 
+@api_router.put("/fees/{fee_id}")
+async def update_fee(fee_id: str, data: FeeUpdate, admin=Depends(get_current_admin)):
+    """Update a fee (including the default camp fee)"""
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    result = await db.fees.update_one({"id": fee_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Fee not found")
+    
+    return {"message": "Fee updated"}
+
 @api_router.delete("/fees/{fee_id}")
 async def delete_fee(fee_id: str, admin=Depends(get_current_admin)):
-    """Delete a fee"""
+    """Delete a fee (cannot delete the default camp fee)"""
     result = await db.fees.delete_one({"id": fee_id, "is_default": {"$ne": True}})
     if result.deleted_count == 0:
         raise HTTPException(status_code=400, detail="Cannot delete default fee or fee not found")
