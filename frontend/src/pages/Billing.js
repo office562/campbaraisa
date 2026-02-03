@@ -632,7 +632,7 @@ function Billing() {
                 {fees.map(fee => (
                   <div
                     key={fee.id}
-                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border ${selectedFees.includes(fee.id) ? 'bg-[#E85D04]/10 border-[#E85D04]' : 'bg-gray-50 hover:bg-gray-100'}`}
+                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer border transition-colors ${selectedFees.includes(fee.id) ? 'bg-[#E85D04]/10 border-[#E85D04]' : 'bg-gray-50 hover:bg-gray-100 border-gray-200'}`}
                     onClick={() => {
                       if (selectedFees.includes(fee.id)) {
                         setSelectedFees(selectedFees.filter(id => id !== fee.id));
@@ -642,7 +642,17 @@ function Billing() {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <Checkbox checked={selectedFees.includes(fee.id)} />
+                      <Checkbox 
+                        checked={selectedFees.includes(fee.id)} 
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedFees([...selectedFees, fee.id]);
+                          } else {
+                            setSelectedFees(selectedFees.filter(id => id !== fee.id));
+                          }
+                        }}
+                        className="pointer-events-none"
+                      />
                       <div>
                         <p className="font-medium">{fee.name}</p>
                         {fee.description && <p className="text-sm text-muted-foreground">{fee.description}</p>}
