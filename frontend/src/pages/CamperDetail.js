@@ -95,6 +95,7 @@ function CamperDetail() {
   const [saving, setSaving] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+  const [zoomedPhoto, setZoomedPhoto] = useState(null);
 
   useEffect(function() {
     async function fetchData() {
