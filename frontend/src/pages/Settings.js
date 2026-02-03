@@ -167,8 +167,15 @@ function Settings() {
           twilio_account_sid: settingsRes.data.twilio_account_sid || '',
           twilio_auth_token: settingsRes.data.twilio_auth_token || '',
           twilio_phone_number: settingsRes.data.twilio_phone_number || '',
+          twilio_enabled: settingsRes.data.twilio_enabled || false,
           gmail_client_id: settingsRes.data.gmail_client_id || '',
-          gmail_client_secret: settingsRes.data.gmail_client_secret || ''
+          gmail_client_secret: settingsRes.data.gmail_client_secret || '',
+          gmail_enabled: settingsRes.data.gmail_enabled || false,
+          resend_api_key: settingsRes.data.resend_api_key || '',
+          resend_enabled: settingsRes.data.resend_enabled || false,
+          email_provider: settingsRes.data.email_provider || 'none',
+          stripe_api_key: settingsRes.data.stripe_api_key || '',
+          jotform_api_key: settingsRes.data.jotform_api_key || ''
         });
       }
     } catch (error) {
