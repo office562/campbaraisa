@@ -1199,18 +1199,8 @@ function Billing() {
 
               {viewingInvoice.installment_plan && (
                 <div className="border-t pt-4">
-                  <Label className="text-xs text-muted-foreground mb-2 block">Installment Plan</Label>
-                  <div className="space-y-2">
-                    {viewingInvoice.installment_plan.schedule.map((inst, idx) => (
-                      <div key={idx} className="flex justify-between p-2 bg-gray-50 rounded">
-                        <span>Payment {inst.installment_number} - {inst.due_date}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">${inst.amount.toFixed(2)}</span>
-                          <Badge className={inst.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}>{inst.status}</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">Installment Plan ({viewingInvoice.installment_plan.num_installments} payments)</Label>
+                  <p className="text-sm text-muted-foreground">Payment schedule is set up. View details in invoice management.</p>
                 </div>
               )}
 
