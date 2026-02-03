@@ -814,6 +814,31 @@ function Campers() {
           <p className="text-sm text-muted-foreground">Yeshivas</p>
         </div>
       </div>
+
+      {/* Photo Zoom Modal */}
+      {zoomedPhoto && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={function() { setZoomedPhoto(null); }}
+        >
+          <div className="relative max-w-3xl max-h-[90vh]">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute -top-10 right-0 text-white hover:text-white hover:bg-white/20"
+              onClick={function() { setZoomedPhoto(null); }}
+            >
+              <X className="w-6 h-6" />
+            </Button>
+            <img 
+              src={zoomedPhoto.url} 
+              alt={zoomedPhoto.name} 
+              className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+            />
+            <p className="text-white text-center mt-4 text-lg font-medium">{zoomedPhoto.name}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
