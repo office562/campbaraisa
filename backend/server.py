@@ -1319,34 +1319,102 @@ async def create_invoice(data: InvoiceCreate, admin=Depends(get_current_admin)):
         default_due = datetime.now(timezone.utc) + timedelta(days=90)
         data.due_date = default_due.strftime("%Y-%m-%d")
     
+    # Calculate total from line items or use single amount
+    line_items = data.line_items or []
+    if line_items:
+        total_amount = sum(item.amount * item.quantity for item in line_items)
+        # Assign IDs to line items
+        for item in line_items:
+            if not item.id:
+                item.id = str(uuid.uuid4())
+    else:
+        total_amount = 0
+    
+    # Apply discount
+    final_amount = total_amount - (data.discount_amount or 0)
+    
+    # Generate invoice number
+    count = await db.invoices.count_documents({})
+    invoice_number = f"INV-{datetime.now().year}-{str(count + 1).zfill(5)}"
+    
+    # Generate portal token
+    portal_token = secrets.token_urlsafe(32)
+    
     invoice_doc = {
         "id": str(uuid.uuid4()),
-        **data.model_dump(),
-        "status": "pending",
+        "invoice_number": invoice_number,
+        "camper_id": data.camper_id,
+        "description": data.description,
+        "due_date": data.due_date,
+        "line_items": [item.model_dump() for item in line_items],
+        "amount": final_amount,
+        "discount_amount": data.discount_amount or 0,
+        "discount_description": data.discount_description,
+        "notes": data.notes,
+        "status": "draft",
         "paid_amount": 0.0,
         "reminder_sent_dates": [],
         "next_reminder_date": calculate_next_reminder(data.due_date, []),
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "portal_token": portal_token,
+        "is_deleted": False,
+        "installment_plan": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "sent_at": None,
+        "viewed_at": None
     }
+    
+    # Create installment plan if requested
+    if data.create_installments and data.num_installments > 1:
+        installment_amount = round(final_amount / data.num_installments, 2)
+        schedule = []
+        
+        # Use provided dates or generate them
+        if data.installment_dates and len(data.installment_dates) == data.num_installments:
+            dates = data.installment_dates
+        else:
+            # Generate monthly dates starting from due date
+            base_date = datetime.strptime(data.due_date, "%Y-%m-%d")
+            dates = [(base_date + timedelta(days=30 * i)).strftime("%Y-%m-%d") for i in range(data.num_installments)]
+        
+        for i, date in enumerate(dates):
+            # Last installment gets any remaining cents
+            amt = installment_amount if i < data.num_installments - 1 else round(final_amount - (installment_amount * (data.num_installments - 1)), 2)
+            schedule.append({
+                "id": str(uuid.uuid4()),
+                "installment_number": i + 1,
+                "due_date": date,
+                "amount": amt,
+                "status": "pending",
+                "paid_date": None
+            })
+        
+        invoice_doc["installment_plan"] = {
+            "id": str(uuid.uuid4()),
+            "total_amount": final_amount,
+            "num_installments": data.num_installments,
+            "schedule": schedule
+        }
+    
     await db.invoices.insert_one(invoice_doc)
     
     # Update camper balance
     await db.campers.update_one(
         {"id": data.camper_id},
-        {"$inc": {"total_balance": data.amount}}
+        {"$inc": {"total_balance": final_amount}}
     )
     
     # Log activity
-    camper = await db.campers.find_one({"id": data.camper_id}, {"_id": 0})
     await log_activity(
         entity_type="camper",
         entity_id=data.camper_id,
         action="invoice_created",
         details={
             "invoice_id": invoice_doc["id"],
-            "amount": data.amount,
+            "invoice_number": invoice_number,
+            "amount": final_amount,
             "due_date": data.due_date,
-            "description": data.description
+            "description": data.description,
+            "has_installments": data.create_installments
         },
         performed_by=admin.get("id")
     )
