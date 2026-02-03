@@ -2743,6 +2743,119 @@ async def update_settings(data: SettingsBase, admin=Depends(get_current_admin)):
     
     return await get_settings(admin)
 
+# ==================== STRIPE WEBHOOK ====================
+
+@api_router.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events for payment confirmations"""
+    payload = await request.body()
+    
+    try:
+        # Parse the event (in production, verify signature)
+        import json
+        event = json.loads(payload)
+        
+        event_type = event.get("type", "")
+        
+        if event_type == "checkout.session.completed":
+            session = event.get("data", {}).get("object", {})
+            metadata = session.get("metadata", {})
+            invoice_id = metadata.get("invoice_id")
+            amount = session.get("amount_total", 0) / 100  # Convert from cents
+            
+            if invoice_id:
+                invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+                if invoice:
+                    new_paid = invoice.get("paid_amount", 0) + amount
+                    new_status = "paid" if new_paid >= invoice["amount"] else "partial"
+                    
+                    await db.invoices.update_one(
+                        {"id": invoice_id},
+                        {"$set": {
+                            "paid_amount": new_paid,
+                            "status": new_status
+                        }}
+                    )
+                    
+                    # Update camper balance
+                    await db.campers.update_one(
+                        {"id": invoice["camper_id"]},
+                        {"$inc": {"total_paid": amount}}
+                    )
+                    
+                    # Create payment record
+                    payment_doc = {
+                        "id": str(uuid.uuid4()),
+                        "invoice_id": invoice_id,
+                        "amount": amount,
+                        "method": "stripe",
+                        "status": "completed",
+                        "stripe_session_id": session.get("id"),
+                        "notes": "Online payment via Stripe",
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    await db.payments.insert_one(payment_doc)
+                    
+                    # Log activity
+                    await log_activity(
+                        entity_type="camper",
+                        entity_id=invoice["camper_id"],
+                        action="payment_received",
+                        details={
+                            "invoice_id": invoice_id,
+                            "amount": amount,
+                            "method": "stripe",
+                            "new_status": new_status
+                        },
+                        performed_by="stripe_webhook"
+                    )
+        
+        elif event_type == "payment_intent.payment_failed":
+            # Log failed payment
+            intent = event.get("data", {}).get("object", {})
+            metadata = intent.get("metadata", {})
+            invoice_id = metadata.get("invoice_id")
+            
+            if invoice_id:
+                await log_activity(
+                    entity_type="invoice",
+                    entity_id=invoice_id,
+                    action="payment_failed",
+                    details={
+                        "error": intent.get("last_payment_error", {}).get("message", "Unknown error")
+                    },
+                    performed_by="stripe_webhook"
+                )
+        
+        return {"status": "success"}
+    
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@api_router.get("/portal/check/{portal_token}")
+async def check_portal_access(portal_token: str):
+    """Check if portal access is enabled and valid"""
+    settings = await db.settings.find_one({}, {"_id": 0})
+    
+    if settings and not settings.get("portal_links_enabled", True):
+        raise HTTPException(status_code=403, detail="Portal access is currently disabled")
+    
+    # Check if token belongs to a camper
+    camper = await db.campers.find_one({"portal_token": portal_token}, {"_id": 0})
+    if not camper:
+        # Also check invoices
+        invoice = await db.invoices.find_one({"portal_token": portal_token}, {"_id": 0})
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invalid portal link")
+        
+        camper = await db.campers.find_one({"id": invoice["camper_id"]}, {"_id": 0})
+    
+    return {
+        "valid": True,
+        "camper_id": camper["id"] if camper else None,
+        "camper_name": f"{camper.get('first_name', '')} {camper.get('last_name', '')}".strip() if camper else None
+    }
+
 # ==================== EXPORT ROUTES ====================
 
 @api_router.get("/exports/campers")
