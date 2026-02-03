@@ -218,7 +218,12 @@ const Financial = () => {
             Track income, expenses, and overall financial health
           </p>
         </div>
-        <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleQuickBooksExport} data-testid="quickbooks-export-btn">
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            QuickBooks Export
+          </Button>
+          <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
           <DialogTrigger asChild>
             <Button className="btn-camp-primary" data-testid="add-expense-btn">
               <Plus className="w-4 h-4 mr-2" />
