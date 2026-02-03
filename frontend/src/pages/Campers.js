@@ -690,6 +690,7 @@ function Campers() {
                 <TableHead>Grade</TableHead>
                 <TableHead>Yeshiva</TableHead>
                 <TableHead>Parent</TableHead>
+                <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -697,6 +698,8 @@ function Campers() {
             <TableBody>
               {filteredCampers.length > 0 ? (
                 filteredCampers.map(function(camper) {
+                  const parentPhone = camper.father_cell || camper.mother_cell;
+                  const parentEmail = camper.parent_email;
                   return (
                     <TableRow 
                       key={camper.id} 
@@ -707,7 +710,12 @@ function Campers() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
                           {camper.photo_url ? (
-                            <img src={camper.photo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                            <img 
+                              src={camper.photo_url} 
+                              alt="" 
+                              className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:ring-2 hover:ring-[#E85D04] transition-all"
+                              onClick={function(e) { handlePhotoClick(e, camper.photo_url, camper.first_name + ' ' + camper.last_name); }}
+                            />
                           ) : (
                             <div className="w-8 h-8 rounded-lg bg-[#E85D04]/10 flex items-center justify-center">
                               <span className="text-[#E85D04] font-bold text-sm">
@@ -723,6 +731,40 @@ function Campers() {
                       <TableCell>{camper.grade || '-'}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{camper.yeshiva || '-'}</TableCell>
                       <TableCell>{getParentName(camper)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={function(e) { handleCall(e, parentPhone); }}
+                            data-testid={'call-camper-' + camper.id}
+                            title={parentPhone || 'No phone'}
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={function(e) { handleText(e, parentPhone); }}
+                            data-testid={'text-camper-' + camper.id}
+                            title={parentPhone || 'No phone'}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            onClick={function(e) { handleEmail(e, parentEmail); }}
+                            data-testid={'email-camper-' + camper.id}
+                            title={parentEmail || 'No email'}
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge className={statusColors[camper.status] || 'bg-gray-100 text-gray-800'}>
                           {camper.status}
@@ -747,7 +789,7 @@ function Campers() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No campers found
                   </TableCell>
                 </TableRow>
