@@ -1119,6 +1119,49 @@ async def permanent_delete_camper(camper_id: str, admin=Depends(get_current_admi
         raise HTTPException(status_code=404, detail="Camper not found in trash")
     return {"message": "Camper permanently deleted"}
 
+# ==================== FEES ROUTES ====================
+
+class FeeCreate(BaseModel):
+    name: str
+    amount: float
+    description: Optional[str] = None
+
+@api_router.get("/fees")
+async def get_fees(admin=Depends(get_current_admin)):
+    """Get all fees"""
+    fees = await db.fees.find({}, {"_id": 0}).to_list(100)
+    # Add default camp fee if not exists
+    if not any(f.get("is_default") for f in fees):
+        default_fee = {
+            "id": "camp_fee_default",
+            "name": "Camp Fee",
+            "amount": 3475,
+            "description": "Summer 2026 Camp Fee",
+            "is_default": True
+        }
+        fees.insert(0, default_fee)
+    return fees
+
+@api_router.post("/fees")
+async def create_fee(data: FeeCreate, admin=Depends(get_current_admin)):
+    """Create a new fee"""
+    fee_doc = {
+        "id": str(uuid.uuid4()),
+        **data.model_dump(),
+        "is_default": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.fees.insert_one(fee_doc)
+    return {"message": "Fee created", "id": fee_doc["id"]}
+
+@api_router.delete("/fees/{fee_id}")
+async def delete_fee(fee_id: str, admin=Depends(get_current_admin)):
+    """Delete a fee"""
+    result = await db.fees.delete_one({"id": fee_id, "is_default": {"$ne": True}})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=400, detail="Cannot delete default fee or fee not found")
+    return {"message": "Fee deleted"}
+
 # ==================== KANBAN ROUTES ====================
 
 @api_router.get("/kanban")
