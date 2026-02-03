@@ -274,6 +274,45 @@ function Billing() {
     }
   };
 
+  // Stripe checkout handler
+  const handleStripeCheckout = async () => {
+    if (!stripeInvoice || !stripeAmount) {
+      toast.error('Please select an invoice and enter amount');
+      return;
+    }
+    
+    setProcessingStripe(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/stripe/checkout?invoice_id=${stripeInvoice.id}&amount=${parseFloat(stripeAmount)}&origin_url=${window.location.origin}&include_fee=true`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      toast.error('Failed to initiate Stripe checkout');
+    } finally {
+      setProcessingStripe(false);
+    }
+  };
+
+  const openStripeDialog = (invoice) => {
+    setStripeInvoice(invoice);
+    const balance = (invoice.amount - invoice.paid_amount).toFixed(2);
+    setStripeAmount(balance);
+    setShowStripeDialog(true);
+  };
+
+  // Calculate Stripe fee
+  const calculateStripeFee = () => {
+    const amount = parseFloat(stripeAmount) || 0;
+    const fee = amount * 0.035;
+    return { base: amount, fee: fee, total: amount + fee };
+  };
+
   const getCamperName = (camperId) => {
     const camper = campers.find(c => c.id === camperId);
     return camper ? `${camper.first_name} ${camper.last_name}` : 'Unknown';
