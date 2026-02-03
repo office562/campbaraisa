@@ -772,11 +772,11 @@ function Billing() {
       </Dialog>
 
       {/* Manage Fees Dialog */}
-      <Dialog open={showManageFees} onOpenChange={setShowManageFees}>
+      <Dialog open={showManageFees} onOpenChange={(open) => { setShowManageFees(open); if (!open) setEditingFee(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl">Manage Fees</DialogTitle>
-            <DialogDescription>Add custom fees that can be applied to invoices</DialogDescription>
+            <DialogDescription>Add, edit, or remove fees that can be applied to invoices</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Add New Fee */}
@@ -810,18 +810,61 @@ function Billing() {
               <p className="font-medium mb-3">Existing Fees</p>
               <div className="space-y-2">
                 {fees.map(fee => (
-                  <div key={fee.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{fee.name}</p>
-                      <p className="text-sm text-muted-foreground">${fee.amount.toLocaleString()}</p>
-                    </div>
-                    {fee.id !== 'camp_fee' && !fee.is_default && (
-                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeleteFee(fee.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                    {(fee.id === 'camp_fee' || fee.is_default) && (
-                      <Badge>Default</Badge>
+                  <div key={fee.id} className="p-3 bg-gray-50 rounded-lg">
+                    {editingFee && editingFee.id === fee.id ? (
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Fee Name"
+                          value={editingFee.name}
+                          onChange={(e) => setEditingFee({...editingFee, name: e.target.value})}
+                        />
+                        <Input
+                          type="number"
+                          placeholder="Amount ($)"
+                          value={editingFee.amount}
+                          onChange={(e) => setEditingFee({...editingFee, amount: e.target.value})}
+                        />
+                        <Input
+                          placeholder="Description"
+                          value={editingFee.description || ''}
+                          onChange={(e) => setEditingFee({...editingFee, description: e.target.value})}
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleUpdateFee} className="btn-camp-primary">Save</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingFee(null)}>Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{fee.name}</p>
+                            {fee.is_default && <Badge variant="secondary" className="text-xs">Default</Badge>}
+                          </div>
+                          <p className="text-sm text-muted-foreground">${fee.amount.toLocaleString()}</p>
+                          {fee.description && <p className="text-xs text-muted-foreground mt-1">{fee.description}</p>}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-blue-600 hover:text-blue-700"
+                            onClick={() => setEditingFee({ ...fee })}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          {!fee.is_default && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-600 hover:text-red-700" 
+                              onClick={() => handleDeleteFee(fee.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
