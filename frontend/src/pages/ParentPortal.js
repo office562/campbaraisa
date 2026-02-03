@@ -185,22 +185,22 @@ const ParentPortal = () => {
       {/* Hero Header with Bryce Canyon */}
       <div 
         className="relative h-48 md:h-64 bg-cover bg-center"
-        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1605999211498-1a6cf07fc10d?crop=entropy&cs=srgb&fm=jpg&q=85)' }}
+        style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1628111807066-323ae240b363?crop=entropy&cs=srgb&fm=jpg&q=85)' }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-[#2D241E] to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
           <div className="max-w-4xl mx-auto flex items-end gap-4">
             <img 
-              src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/of4shzam_IMG_3441%202.jpg" 
+              src="https://customer-assets.emergentagent.com/job_29a6f845-ffbd-497f-b701-7df33de74a66/artifacts/e2cf1yq8_IMG_4388.PNG" 
               alt="Camp Baraisa" 
-              className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white p-2 shadow-lg"
+              className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-white p-2 shadow-lg object-contain"
             />
             <div>
               <h1 className="font-heading text-3xl md:text-4xl font-bold text-white">
                 Camp Baraisa
               </h1>
-              <p className="text-white/90">The Ultimate Bein Hazmanim Experience</p>
-              <p className="text-white/70 text-sm italic">For the serious Ben Torah.</p>
+              <p className="text-white/90 text-lg">The Ultimate Bein Hazmanim Experience</p>
+              <p className="text-[#F4A261] font-semibold">for the serious Ben Torah</p>
             </div>
           </div>
         </div>
